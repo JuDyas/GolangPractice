@@ -7,23 +7,22 @@ import (
 
 func main() {
 	inputText := "Fjj(l):L, J-j/f"
-	fmt.Println(Palindrom(inputText))
+	fmt.Println(palindrom(inputText))
 }
 
-func Palindrom(stringIn string) bool {
+func palindrom(text string) bool {
+	text = strings.ToLower(text)
+	cleanText := ""
 
-	stringIn = strings.ToLower(stringIn)
-	cleanString := ""
-
-	for _, char := range stringIn {
+	for _, char := range text {
 		if char >= 'a' && char <= 'z' {
-			cleanString += string(char)
+			cleanText += string(char)
 		}
 	}
 
-	length := len(cleanString)
+	length := len(cleanText)
 	for i := 0; i < length/2; i++ {
-		if cleanString[i] != cleanString[length-i-1] {
+		if cleanText[i] != cleanText[length-i-1] {
 			return false
 		}
 	}
