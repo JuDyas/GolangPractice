@@ -11,20 +11,24 @@ func calculate() {
 	var operator string
 
 	fmt.Println("Enter an expression, for example 2 + 2")
-	fmt.Scanf("%f %s %f", &num1, &operator, &num2)
+	fmt.Scanf("%f %s %f", &num1, &operator, &num2) //Запрашивает пример
 
-	if operator == "+" {
+	switch operator { //Выбираем оператор (+, -, * или /)
+	case "+":
 		answer = num1 + num2
-	}
-	if operator == "-" {
+	case "-":
 		answer = num1 - num2
-	}
-	if operator == "*" {
+	case "*":
 		answer = num1 * num2
+	case "/":
+		if num2 == 0 { //При попытке делить на 0 выводим ошибку
+			fmt.Println("Error: You can't divide by 0")
+		} else {
+			answer = num1 / num2
+		}
+	default: //Если ввод не соотвествует стандарту выдаём ошибку.
+		fmt.Println("Error: Invalid input. Please use +, -, *, or /, and separate by spaces.")
+		return
 	}
-	if operator == "/" {
-		answer = num1 / num2
-	}
-	
 	fmt.Println("Answer:", answer)
 }
