@@ -4,9 +4,9 @@ import "fmt"
 
 func main() {
 	sl := []int{3, 7, 9, 1, 34, 12, 8, 4, 33, 28, 0}
-	bubbleSort(sl)
+	fmt.Println(bubbleSort(sl))
 }
-func bubbleSort(sl []int) {
+func bubbleSort(sl []int) []int {
 	check := true
 	for check {
 		check = false
@@ -17,9 +17,7 @@ func bubbleSort(sl []int) {
 				sl[i-1], sl[i] = sl[i], sl[i-1]
 				check = true
 			}
-
 		}
-
 	}
-	fmt.Println(sl)
+	return sl
 }
