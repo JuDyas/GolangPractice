@@ -8,9 +8,8 @@ import (
 )
 
 func main() {
-
+	rand.Seed(time.Now().UnixNano())
 	fmt.Println(retry(5, time.Second))
-
 }
 
 // Отправляем запрос, если отрицательный - повторяем спустя n
@@ -29,7 +28,7 @@ func retry(attempts int, sleep time.Duration) string {
 
 // Подобие запроса, если будет число от 4 до 9, то получим ошибку.
 func exampleRequest() error {
-	if rand.Intn(10) > 3 {
+	if rand.Intn(10) < 8 {
 		return errors.New("ошибка")
 	}
 	return nil
