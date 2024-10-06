@@ -1,7 +1,6 @@
 package main
 
 import (
-	"crypto/md5"
 	"crypto/sha1"
 	"encoding/hex"
 	"encoding/json"
@@ -11,56 +10,57 @@ import (
 )
 
 func main() {
-	fileName := "./example.json"
-	file, err := os.Open(fileName)
+	fileNameIn := "./example.json"
+	fileNameOut := "exampleSHA1.json"
+	whatHash := []string{"password", "ip"}
+
+	err := readWrite(fileNameIn, fileNameOut, whatHash)
 	if err != nil {
-		fmt.Println(err)
-		return
+		fmt.Println("Error: ", err)
+	}
+}
+
+// readWrite - open/read/write json file
+func readWrite(fileNameIn, fileNameOut string, whatHash []string) error {
+	file, err := os.Open(fileNameIn)
+	if err != nil {
+		return err
 	}
 	defer file.Close()
 
 	readerByte, err := io.ReadAll(file)
 	if err != nil {
-		fmt.Println(err)
-		return
+		return err
 	}
 
 	var data map[string]interface{}
 	err = json.Unmarshal(readerByte, &data)
 	if err != nil {
-		fmt.Println(err)
-		return
+		return err
 	}
-
-	whatHash := []string{"password", "ip"}
 	hashJson(data, whatHash)
 
 	writeJson, err := json.MarshalIndent(data, "", "  ")
 	if err != nil {
-		fmt.Println(err)
-		return
+		return err
 	}
-	err = os.WriteFile("exampleSHA1.json", writeJson, 0644)
+	err = os.WriteFile(fileNameOut, writeJson, 0644)
 	if err != nil {
-		fmt.Println(err)
-		return
+		return err
 	}
-	fmt.Println("Гатова!")
+
+	fmt.Println("Complete")
+	return nil
 }
 
-// Функции для расчёта хеша и преобразования в строку.
-func md5Hash(data string) string {
-	hash := md5.New()
-	hash.Write([]byte(data))
-	return hex.EncodeToString(hash.Sum(nil))
-}
+// sha1Hash - protocol of hashing
 func sha1Hash(data string) string {
 	hash := sha1.New()
 	hash.Write([]byte(data))
 	return hex.EncodeToString(hash.Sum(nil))
 }
 
-// Проверка ключа и сздание хеша
+// hashJson - do hashing
 func hashJson(data map[string]interface{}, whatHash []string) {
 	for k, v := range data {
 		strV, ok := v.(string)
@@ -73,7 +73,7 @@ func hashJson(data map[string]interface{}, whatHash []string) {
 	}
 }
 
-// Проверка существования ключа
+// exist - check existing item in json file
 func exist(whatHash []string, k string) bool {
 	for _, v := range whatHash {
 		if v == k {
