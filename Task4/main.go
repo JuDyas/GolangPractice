@@ -9,19 +9,19 @@ import (
 )
 
 func main() {
-	calculate()
-}
-
-func calculate() { //
 	fmt.Println("Enter an expression, for example 2 + 2 * 2")
 	read := bufio.NewReader(os.Stdin)      //Запрашивает пример
 	readText, _ := read.ReadString('\n')   //Ожидание ввода до нажатия enter(/m)
 	readText = strings.TrimSpace(readText) // Должно очистить лишние пробелы если они будут (в начале и конце строки)
+	fmt.Println(calculate(readText))
 
-	splitText := strings.Fields(readText) //Разбиваем строку на отдельные элементы (по пробелам)
-	splitText = multyply(splitText)       //Деление и умножение
-	answer := addsubst(splitText)         //Сочетание и вычетание
-	fmt.Println(answer)                   //Вывод ответа
+}
+
+func calculate(text string) string { //
+	splitText := strings.Fields(text) //Разбиваем строку на отдельные элементы (по пробелам)
+	splitText = multyply(splitText)   //Деление и умножение
+	answer := addsubst(splitText)     //Сочетание и вычетание
+	return answer                     //Вывод ответа
 }
 
 func multyply(expression []string) []string { //Умножение с делением идут первыми, поэтому сделал отдельные функции чтобы пройтись сначала по ним.
