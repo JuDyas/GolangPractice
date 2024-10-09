@@ -7,10 +7,10 @@ import (
 
 func main() {
 	inputText := "ыjj(線l):L線, J-j/Ы"
-	fmt.Println(palindrom(inputText))
+	fmt.Println(palindrome(inputText))
 }
 
-func palindrom(text string) bool {
+func palindrome(text string) bool {
 	var cleanText []rune
 
 	for _, char := range text {
