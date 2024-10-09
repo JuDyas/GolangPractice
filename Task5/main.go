@@ -28,7 +28,7 @@ func matrix(A, B [][]int) ([][]int, error) {
 	var gorA, gorB = len(A[0]), len(B[0]) //Узнаём количество столбцов/рядов
 
 	if gorA != vertB { //Проверка вохможно ли перемножить матрицы
-		return nil, fmt.Errorf("It is impossible to multiply")
+		return nil, fmt.Errorf("it is impossible to multiply")
 	}
 
 	C := make([][]int, vertA) //Создаём матрицу в которую будет записан результат
