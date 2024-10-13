@@ -80,13 +80,13 @@ func hashJson(data map[string]interface{}, whatHash []string, hashType *string) 
 		if nestedMap, ok := v.(map[string]interface{}); ok {
 			_, err := hashJson(nestedMap, whatHash, hashType)
 			if err != nil {
-				return "", err
+				return "", fmt.Errorf("run recursion failed: %v", err)
 			}
 		}
 	}
 	resultJson, err := json.MarshalIndent(data, "", "  ")
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("JSON marshalling failed: %v", err)
 	}
 	return string(resultJson), nil
 }
