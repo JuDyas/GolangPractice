@@ -2,34 +2,46 @@ package main
 
 import (
 	"errors"
-	"fmt"
+	"log"
 	"math/rand"
 	"time"
 )
 
 func main() {
-	rand.Seed(time.Now().UnixNano())
-	fmt.Println(retry(5, time.Second))
+	rand.NewSource(time.Now().UnixNano())
+	err := (retry(5, time.Second))
+	if err != nil {
+		log.SetPrefix("ERROR: ")
+		log.Fatal(err)
+	} else {
+		log.Printf("INFO: OK")
+	}
 }
 
-// Отправляем запрос, если отрицательный - повторяем спустя n
-func retry(attempts int, sleep time.Duration) string {
+// retry - send request many times
+func retry(attempts int, sleep time.Duration) error {
 	for i := 0; i < attempts; i++ {
 		err := exampleRequest()
 		if err == nil {
-			return "успех"
+			return nil
+		} else if err.Error() == "bad request" {
+			return err
+		} else {
+			time.Sleep(sleep)
 		}
-		fmt.Printf("Попытка %d\n", i+1)
-		time.Sleep(sleep)
 	}
-	return "ошибка"
-
+	return nil
 }
 
-// Подобие запроса, если будет число от 4 до 9, то получим ошибку.
+// exampleRequest - try to send example request
 func exampleRequest() error {
-	if rand.Intn(10) < 8 {
-		return errors.New("ошибка")
+	switch rand.Intn(10) {
+	case 0, 2, 4:
+		return nil
+	case 1, 3, 5:
+		return errors.New("bad request")
+	case 6, 7, 8, 9:
+		return errors.New("server starting up")
 	}
 	return nil
 }
