@@ -30,6 +30,7 @@ func retry(attempts int, sleep time.Duration) error {
 			time.Sleep(sleep)
 		}
 	}
+
 	return nil
 }
 
@@ -43,5 +44,6 @@ func exampleRequest() error {
 	case 6, 7, 8, 9:
 		return errors.New("server starting up")
 	}
+
 	return nil
 }
