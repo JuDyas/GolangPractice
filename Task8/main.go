@@ -7,35 +7,13 @@ import (
 	"time"
 )
 
-func main() {
-	rand.NewSource(time.Now().UnixNano())
-	err := (retry(5, time.Second))
-	if err != nil {
-		log.SetPrefix("ERROR: ")
-		log.Fatal(err)
-	} else {
-		log.Printf("INFO: OK")
-	}
+type Request interface {
+	Request() error
 }
 
-// retry - send request many times
-func retry(attempts int, sleep time.Duration) error {
-	for i := 0; i < attempts; i++ {
-		err := exampleRequest()
-		if err == nil {
-			return nil
-		} else if err.Error() == "bad request" {
-			return err
-		} else {
-			time.Sleep(sleep)
-		}
-	}
+type exampleRequest struct{}
 
-	return nil
-}
-
-// exampleRequest - try to send example request
-func exampleRequest() error {
+func (r *exampleRequest) Request() error {
 	switch rand.Intn(10) {
 	case 0, 2, 4:
 		return nil
@@ -46,4 +24,31 @@ func exampleRequest() error {
 	}
 
 	return nil
+}
+
+func main() {
+	rand.NewSource(time.Now().UnixNano())
+	err := retry(5, time.Second, &exampleRequest{})
+	if err != nil {
+		log.SetPrefix("ERROR: ")
+		log.Fatal(err)
+	} else {
+		log.Printf("INFO: OK")
+	}
+}
+
+// retry - send request many times
+func retry(attempts int, sleep time.Duration, r Request) error {
+	for i := 0; i < attempts; i++ {
+		err := r.Request()
+		if err == nil {
+			return nil
+		} else if err.Error() == "bad request" {
+			return err
+		} else {
+			time.Sleep(sleep)
+		}
+	}
+
+	return errors.New("all attempts failed")
 }
