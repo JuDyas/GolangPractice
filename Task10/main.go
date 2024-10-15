@@ -1,37 +1,44 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 )
 
+var startPath = flag.String("startPath", "./Task10", "path to read")
+
 func main() {
-	startPath := "./"
-	err := directoryTree(startPath, 0)
+	flag.Parse()
+	result, err := directoryTree(*startPath, 0)
 	if err != nil {
 		fmt.Println(err)
 	}
+	fmt.Println(result)
 }
 
 // directoryTree - display tree of all directories in the path
-func directoryTree(startPath string, level int) error {
-	dir, err := os.ReadDir(startPath)
+func directoryTree(path string, level int) ([]string, error) {
+	dir, err := os.ReadDir(path)
 	if err != nil {
-		return err
+		return nil, err
 	}
+	var result []string
 	for _, file := range dir {
 		thisPath := strings.Repeat(".    ", level)
-		fmt.Printf("%s|- %s\n", thisPath, file.Name())
-
+		result = append(result, thisPath+file.Name())
 		if file.IsDir() {
-			newPath := filepath.Join(startPath, file.Name())
-			err := directoryTree(newPath, level+1)
+			newPath := filepath.Join(path, file.Name())
+			subDirRes, err := directoryTree(newPath, level+1)
 			if err != nil {
-				return err
+				return nil, err
 			}
+
+			result = append(result, subDirRes...)
 		}
 	}
-	return nil
+
+	return result, nil
 }
