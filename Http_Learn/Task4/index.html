@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hash JSON Data</title>
+</head>
+<body>
+<form action="/hash" method="POST">
+    <label for="jsonData">JSON:</label><br>
+    <textarea id="jsonData" name="jsonData" rows="10" cols="60">{"name": "Denys", "age": "123", "password": "UpbQ2X*&FQ$L", "info": {"weight": "60", "ip": "192.168.1.1"}}</textarea>
+    <br><br>
+    <label for="hashElements">What Hash:</label><br>
+    <input type="text" id="hashElements" name="hashElements" value="password,ip">
+    <br><br>
+    <input type="submit" value="Submit">
+</form>
+</body>
+</html>
