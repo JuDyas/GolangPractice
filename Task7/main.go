@@ -5,7 +5,7 @@
 package main
 
 import (
-	"GolangPractice/Task7/lib"
+	"GolangPractice/Task7/hasher"
 	"crypto/sha1"
 	"encoding/hex"
 	"flag"
@@ -27,12 +27,12 @@ var (
 
 func main() {
 	flag.Parse()
-	dataProcessed, whatHashProcessed, err := lib.ProcessFlags(jsonData, whatHash)
+	dataProcessed, whatHashProcessed, err := hasher.ProcessFlags(jsonData, whatHash)
 	if err != nil {
 		log.SetPrefix("ERROR: ")
 		log.Fatalf("Processing data: %v", err)
 	}
-	resultJson, err := lib.HashJson(dataProcessed, whatHashProcessed, &HashSha1{})
+	resultJson, err := hasher.HashJson(dataProcessed, whatHashProcessed, &HashSha1{})
 
 	if err != nil {
 		log.SetPrefix("ERROR: ")
