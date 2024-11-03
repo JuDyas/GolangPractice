@@ -1,6 +1,8 @@
 package vyzhenercipher
 
-import "unicode"
+import (
+	"unicode"
+)
 
 type VizhenerCipher struct {
 	Key         string
@@ -8,67 +10,81 @@ type VizhenerCipher struct {
 	ChangedText string
 }
 
-// Encrypt - ciphering input text (only for Ru or En letters)
+// Encrypt - encrypting text to Vigener cipher
 func (vc *VizhenerCipher) Encrypt() *VizhenerCipher {
-	var (
-		keylen        = len(vc.Key)
-		encryptedText []rune
-	)
-
-	// Check witch alphabet exist letter and start encrypting
-	for i, r := range vc.Text {
-		keyIdx := rune(vc.Key[i%keylen])
-		var (
-			firstChar      rune
-			abcSize, shift int
-		)
-		if s, ok, ct := isEn(r); ok {
-			abcSize = s
-			if ct == 0 {
-				firstChar = 'a'
-			} else if ct == 1 {
-				firstChar = 'A'
-			}
-
-			shift = int(keyIdx - firstChar)
-		} else if s, ok, ct := isRu(r); ok {
-			abcSize = s
-			if ct == 0 {
-				firstChar = 'а'
-			} else if ct == 1 {
-				firstChar = 'А'
-			}
-
-			shift = int(keyIdx - firstChar)
-		} else {
-			encryptedText = append(encryptedText, r)
-			continue
-		}
-
-		encLetter := (int(r)-int(firstChar)+shift)%abcSize + int(firstChar)
-		encryptedText = append(encryptedText, rune(encLetter))
-	}
-
-	vc.ChangedText = string(encryptedText)
+	vc.ChangedText = processText(vc.Text, vc.Key, 1)
 	return vc
 }
 
-func isRu(r rune) (int, bool, int) {
-	if unicode.IsLower(r) {
-		return 33, true, 0
-	} else if unicode.IsUpper(r) {
-		return 34, true, 1
-	} else {
-		return 0, false, 0
-	}
+// Decrypt - decrypting text to Vigener cipher
+func (vc *VizhenerCipher) Decrypt() *VizhenerCipher {
+	vc.ChangedText = processText(vc.Text, vc.Key, -1)
+	return vc
 }
 
-func isEn(r rune) (int, bool, int) {
-	if unicode.IsLower(r) {
-		return 26, true, 0
-	} else if unicode.IsUpper(r) {
-		return 26, true, 1
-	} else {
-		return 0, false, 0
+// processText - process text and shift him
+func processText(text, key string, dire int) string {
+	var (
+		processedText []rune
+		keyLen        = len(key)
+		idx           = 0
+	)
+	for _, r := range text {
+		var (
+			keyIdx        = rune(key[idx%keyLen])
+			processedRune rune
+		)
+		if isEn(r) {
+			shift := int(keyIdx-'A') % 26
+			if unicode.IsLower(r) {
+				shift = int(keyIdx-'a') % 26
+			}
+
+			processedRune = shiftRune(r, shift*dire, 26)
+			idx++
+		} else if isRu(r) {
+			shift := int(keyIdx-'А') % 32
+			if unicode.IsLower(r) {
+				shift = int(keyIdx-'а') % 32
+			}
+
+			processedRune = shiftRune(r, shift*dire, 32)
+			idx++
+		} else {
+			processedText = append(processedText, r)
+			continue
+		}
+
+		processedText = append(processedText, processedRune)
 	}
+
+	return string(processedText)
+}
+
+// shiftRune - shift rune for alphabet on key rune
+func shiftRune(r rune, shift int, alphabetSize int) rune {
+	var base rune
+	if unicode.IsLower(r) {
+		base = 'a'
+		if alphabetSize == 32 {
+			base = 'а'
+		}
+	} else {
+		base = 'A'
+		if alphabetSize == 32 {
+			base = 'А'
+		}
+	}
+
+	return base + (r-base+rune(shift)+rune(alphabetSize))%rune(alphabetSize)
+}
+
+// isRu - check letter is Ru?
+func isRu(r rune) bool {
+	return (r >= 'а' && r <= 'я') || (r >= 'А' && r <= 'Я')
+}
+
+// isEn - check letter is En?
+func isEn(r rune) bool {
+	return (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z')
 }

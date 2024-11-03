@@ -2,7 +2,7 @@ package main
 
 import (
 	"GolangPractice/Http_Learn/Parsing/vyzhenercipher"
-	"log"
+	"fmt"
 )
 
 func main() {
@@ -10,16 +10,28 @@ func main() {
 		key  = "БаNaн"
 		text = "!Привет 123 World!"
 	)
-	encryptTry(key, text)
+	enc := encryptTry(key, text)
+	dec := decryptTry(key, enc)
+	fmt.Println(enc)
+	fmt.Println(dec)
 }
 
 // encryptTry - Try lib for encrypting any text
-func encryptTry(key, text string) {
+func encryptTry(key, text string) string {
 	chipher := &vyzhenercipher.VizhenerCipher{
 		Key:  key,
 		Text: text,
 	}
 
 	chipher.Encrypt()
-	log.Println(chipher.ChangedText)
+	return chipher.ChangedText
+}
+
+func decryptTry(key, text string) string {
+	chipher := &vyzhenercipher.VizhenerCipher{
+		Key:  key,
+		Text: text,
+	}
+	chipher.Decrypt()
+	return chipher.ChangedText
 }
