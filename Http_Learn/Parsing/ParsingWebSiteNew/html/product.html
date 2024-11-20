@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Details</title>
+</head>
+<body>
+<div id="modal">
+    <h2>Введите ключ для дешифровки</h2>
+    <input type="text" id="keyInput" placeholder="Введите ключ" />
+    <button onclick="submitKey()">Подтвердить</button>
+</div>
+
+<p id="productName"></p>
+<p id="productSpecs"></p>
+<button onclick="goBack()">Назад</button>
+
+<script>
+    let decodeKey = ""; // переменная для хранения ключа
+
+    // Получаем ID продукта из URL
+    function getProductIdFromUrl() {
+        const params = new URLSearchParams(window.location.search);
+        return params.get("id");
+    }
+
+    // Загрузка данных о продукте с использованием decodeKey
+    async function loadProductDetails() {
+        const productId = getProductIdFromUrl();
+        if (!productId) {
+            document.getElementById("productName").textContent = "ID продукта не указан";
+            return;
+        }
+
+        // Отправляем POST-запрос с productId и decodeKey
+        const response = await fetch(`/product/${productId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ decodeKey: decodeKey })
+        });
+
+        if (!response.ok) {
+            document.getElementById("productName").textContent = "Продукт не найден или ошибка расшифровки";
+            return;
+        }
+
+        const product = await response.json();
+        document.getElementById("productName").textContent = product.name;
+        document.getElementById("productSpecs").textContent = product.specs;
+    }
+
+    // Обработка ввода ключа дешифровки
+    function submitKey() {
+        decodeKey = document.getElementById("keyInput").value;
+        document.getElementById("modal").style.display = "none";
+        loadProductDetails(); // Загружаем данные о продукте после ввода ключа
+    }
+
+    // Переход на главную страницу
+    function goBack() {
+        window.location.href = "index.html";
+    }
+
+    // Показываем модальное окно при загрузке страницы
+    window.onload = function() {
+        document.getElementById("modal").style.display = "block";
+    };
+</script>
+</body>
+</html>
