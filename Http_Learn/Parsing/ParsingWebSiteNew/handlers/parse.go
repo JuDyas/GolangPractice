@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"time"
 
 	"github.com/chromedp/chromedp"
 	"github.com/go-redis/redis/v8"
@@ -26,7 +25,9 @@ func ParseHtml(rdb *redis.Client) http.HandlerFunc {
 		defer cancel()
 
 		sortOptions := []string{
-			"sort-position", "sort-price", "sort-price_desc", "sort-name", "sort-name_desc", "sort-rating", "sort-rating_desc",
+			"sort-position", "sort-price", "sort-price_desc",
+			"sort-name", "sort-name_desc", "sort-rating",
+			"sort-rating_desc",
 		}
 
 		for _, sortParam := range sortOptions {
@@ -47,12 +48,9 @@ func ParseHtml(rdb *redis.Client) http.HandlerFunc {
 }
 
 func goParse(ctx context.Context, url string) ([]Product, error) {
-	log.Printf("Парсинг URL: %s", url)
-
 	var products []Product
 	err := chromedp.Run(ctx,
 		chromedp.Navigate(url),
-		chromedp.Sleep(1*time.Second),
 		chromedp.WaitVisible(`.product_preview__name_link`, chromedp.ByQueryAll), // Ждем видимости элементов
 		chromedp.Evaluate(`Array.from(document.querySelectorAll('.product_preview')).map(prod => {
 					let name = prod.querySelector('.product_preview__name_link')?.innerText.trim() || '';
@@ -60,14 +58,8 @@ func goParse(ctx context.Context, url string) ([]Product, error) {
 					return {name, specs};
 				})`, &products),
 	)
-
 	if err != nil {
-		log.Printf("Ошибка при парсинге URL: %s, ошибка: %v", url, err)
 		return nil, err
-	}
-
-	if len(products) == 0 {
-		log.Printf("Нет продуктов для URL: %s", url)
 	}
 
 	return products, nil
