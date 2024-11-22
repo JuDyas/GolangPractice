@@ -4,22 +4,29 @@ import (
 	"unicode"
 )
 
-type VizhenerCipher struct {
-	Key         string
-	Text        string
-	ChangedText string
+// interface Encode for exist key, Decode for input key (return err if key incorrect)
+type Cipher interface {
+	Encrypt(text, key string) string
+	Decrypt(text, key string) string
+}
+type VizhenerCipher struct{}
+
+func (vc *VizhenerCipher) Encrypt(text, key string) string {
+	return processText(text, key, 1)
 }
 
-// Encrypt - encrypting text to Vigener cipher
-func (vc *VizhenerCipher) Encrypt() *VizhenerCipher {
-	vc.ChangedText = processText(vc.Text, vc.Key, 1)
-	return vc
+func (vc *VizhenerCipher) Decrypt(text, key string) string {
+	return processText(text, key, -1)
 }
 
-// Decrypt - decrypting text to Vigener cipher
-func (vc *VizhenerCipher) Decrypt() *VizhenerCipher {
-	vc.ChangedText = processText(vc.Text, vc.Key, -1)
-	return vc
+func Encode(text, key string) string {
+	c := VizhenerCipher{}
+	return c.Encrypt(text, key)
+}
+
+func Decode(text, key string) string {
+	c := VizhenerCipher{}
+	return c.Decrypt(text, key)
 }
 
 // processText - process text and shift him
