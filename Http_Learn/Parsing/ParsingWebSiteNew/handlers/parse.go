@@ -1,85 +1,137 @@
 package handlers
 
 import (
-	"GolangPractice/Http_Learn/Parsing/ParsingWebSiteNew/utils"
-	"context"
-	"encoding/json"
+	"flag"
 	"fmt"
-	"log"
 	"net/http"
+	"strings"
 
-	"github.com/chromedp/chromedp"
+	"golang.org/x/net/html"
+
 	"github.com/go-redis/redis/v8"
-	"github.com/google/uuid"
 )
 
 type Product struct {
-	ID    string `json:"id"`
-	Name  string `json:"name"`
-	Specs string `json:"specs"`
+	Name  string
+	Specs string
 }
 
 func ParseHtml(rdb *redis.Client) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		ctx, cancel := chromedp.NewContext(context.Background())
-		defer cancel()
-
-		sortOptions := []string{
-			"sort-position", "sort-price", "sort-price_desc",
-			"sort-name", "sort-name_desc", "sort-rating",
-			"sort-rating_desc",
+		sortOpt := r.URL.Query().Get("sort")
+		if sortOpt == "" {
+			http.Error(w, "sort parameter is required", http.StatusBadRequest)
+			return
 		}
 
-		for _, sortParam := range sortOptions {
-			url := "https://uastore.com.ua/catalog/noutbuki/" + sortParam + "/page-all"
-			prod, err := goParse(ctx, url)
-			if err != nil {
-				log.Println(err)
-			}
-
-			err = saveToDB(prod, rdb, sortParam, utils.Key)
-			if err != nil {
-				log.Println(err)
-			}
+		if !validSortOpt(sortOpt) {
+			http.Error(w, "sort parameter is invalid", http.StatusBadRequest)
+			return
 		}
 
-		w.WriteHeader(http.StatusOK)
+		url := "https://uastore.com.ua/catalog/noutbuki/" + sortOpt + "/page-all"
+		err, products := goParse(url, sortOpt)
+		if err != nil {
+			http.Error(w, "parsing error", http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+		for i, product := range products {
+			fmt.Fprintf(w, "Товар %d:\n", i+1)
+			fmt.Fprintf(w, "  Название: %s\n", product.Name)
+			fmt.Fprintf(w, "  Характеристики: %s\n\n", product.Specs)
+		}
+
 	}
 }
 
-func goParse(ctx context.Context, url string) ([]Product, error) {
-	var products []Product
-	err := chromedp.Run(ctx,
-		chromedp.Navigate(url),
-		chromedp.WaitVisible(`.product_preview__name_link`, chromedp.ByQueryAll), // Ждем видимости элементов
-		chromedp.Evaluate(`Array.from(document.querySelectorAll('.product_preview')).map(prod => {
-					let name = prod.querySelector('.product_preview__name_link')?.innerText.trim() || '';
-					let specs = prod.querySelector('.product_preview__annotation p')?.innerText.trim() || '';
-					return {name, specs};
-				})`, &products),
+func validSortOpt(sortOpt string) bool {
+	var validSortOpts = []string{
+		"sort-position", "sort-price", "sort-price_desc",
+		"sort-name", "sort-name_desc", "sort-rating",
+		"sort-rating_desc",
+	}
+	for _, validSortOpt := range validSortOpts {
+		if sortOpt == validSortOpt {
+			return true
+		}
+	}
+	return false
+}
+
+func goParse(url, sortOpt string) (error, []Product) {
+	flag.Parse()
+
+	resp, err := http.Get(url)
+	if err != nil {
+		return fmt.Errorf("http get error: %w", err), nil
+	}
+
+	defer resp.Body.Close()
+	doc, err := html.Parse(resp.Body)
+	if err != nil {
+		return fmt.Errorf("html parse error: %w", err), nil
+	}
+
+	products := extractProduct(doc)
+	return nil, products
+}
+
+func extractProduct(n *html.Node) []Product {
+	var (
+		products  []Product
+		parseNode func(*html.Node)
 	)
-	if err != nil {
-		return nil, err
+	parseNode = func(n *html.Node) {
+		if n.Type == html.ElementNode && n.Data == "div" {
+			for _, attr := range n.Attr {
+				if attr.Key == "class" && strings.Contains(attr.Val, "product_preview") {
+					name := extractText(n, "product_preview__name_link")
+					specs := extractText(n, "product_preview__annotation")
+					if name != "" && specs != "" {
+						products = append(products, Product{Name: name, Specs: specs})
+					}
+				}
+			}
+		}
+		for child := n.FirstChild; child != nil; child = child.NextSibling {
+			parseNode(child)
+		}
 	}
-
-	return products, nil
+	parseNode(n)
+	return products
 }
 
-func saveToDB(prod []Product, rdb *redis.Client, sp, key string) error {
-	for i, product := range prod {
-		prod[i].ID = uuid.New().String()
-		prod[i].Specs = utils.EncodeData(key, product.Specs)
-	}
+func extractText(n *html.Node, className string) string {
+	var (
+		res        string
+		searchNode func(*html.Node)
+	)
 
-	keyDb := "products:" + sp
-	jsonData, err := json.Marshal(prod)
-	if err != nil {
-		return fmt.Errorf("error converting data to json %s: %v", sp, err)
+	searchNode = func(n *html.Node) {
+		if n.Type == html.ElementNode {
+			for _, attr := range n.Attr {
+				if attr.Key == "class" && strings.Contains(attr.Val, className) {
+					res = getTextFromNode(n)
+					return
+				}
+			}
+		}
+		for child := n.FirstChild; child != nil; child = child.NextSibling {
+			searchNode(child)
+		}
 	}
+	searchNode(n)
+	return res
+}
 
-	err = rdb.Set(context.Background(), keyDb, jsonData, 0).Err()
-	if err != nil {
-		return fmt.Errorf("error saving data to redis %s: %v", sp, err)
+func getTextFromNode(n *html.Node) string {
+	if n.Type == html.TextNode {
+		return strings.TrimSpace(n.Data)
 	}
-	return nil
+	var result strings.Builder
+	for child := n.FirstChild; child != nil; child = child.NextSibling {
+		result.WriteString(getTextFromNode(child))
+	}
+	return result.String()
 }
