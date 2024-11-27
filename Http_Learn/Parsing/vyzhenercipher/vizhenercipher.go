@@ -5,6 +5,7 @@ import (
 )
 
 // interface Encode for exist key, Decode for input key (return err if key incorrect)
+
 type Cipher interface {
 	Encrypt(text, key string) string
 	Decrypt(text, key string) string

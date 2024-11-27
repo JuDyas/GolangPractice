@@ -7,16 +7,16 @@ import (
 	"github.com/go-redis/redis/v8"
 )
 
-func SetupRoutes(mux *http.ServeMux, rdb *redis.Client) {
+func SetupRoutes(mux *http.ServeMux, rdb *redis.Client, productChannel chan []handlers.Product) {
 
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, "./html/index.html")
 		return
 	})
 
-	mux.HandleFunc("/parse", handlers.ParseHtml(rdb))
-	mux.HandleFunc("/getdata", handlers.GetDataFromRedis(rdb))
+	mux.HandleFunc("/parse", handlers.ParseHtml(rdb, productChannel))
+	//mux.HandleFunc("/getdata", handlers.GetDataFromRedis(rdb))
 
-	fs := http.FileServer(http.Dir("./static"))
-	mux.Handle("/static/", http.StripPrefix("/static", fs))
+	fs := http.FileServer(http.Dir("./html")) //Del
+	mux.Handle("/html/", http.StripPrefix("/html", fs))
 }
