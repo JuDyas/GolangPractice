@@ -12,6 +12,8 @@ import (
 	"github.com/joho/godotenv"
 )
 
+// global flag port
+
 func main() {
 	var (
 		rdb  = database.SetupRedis()
@@ -31,11 +33,11 @@ func main() {
 	productChannel := make(chan []handlers.Product)
 	SetupRoutes(mux, rdb, productChannel)
 	go tasks.InitCron(productChannel, key, rdb)
+	//Graceful shutdown
 
-	err := http.ListenAndServe(*port, mux)
+	err = http.ListenAndServe(*port, mux)
 	if err != nil {
 		log.Fatalf("start server error: %s", err)
 	}
-
 	// Struct for handlers with object for fork with bd and cipher
 }

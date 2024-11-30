@@ -9,15 +9,30 @@ import (
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
-	"github.com/go-redis/redis/v8"
 )
+
+const (
+	pageUrl     = "https://uastore.com.ua"
+	catalogPath = "/catalog/noutbuki/sort-"
+)
+
+type Specs struct {
+	displaySize       string
+	displayResolution string
+	cpu               string
+	ram               string
+	hardDrives        string
+	gpu               string
+}
 
 type Product struct {
 	Name  string
-	Specs string
+	Specs Specs
 }
 
-func ParseHtml(rdb *redis.Client, productChannel chan []Product) http.HandlerFunc {
+// add Context
+
+func ParseHtml(productChannel chan []Product) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		sortOpt := r.URL.Query().Get("sort")
 		if sortOpt == "" {
@@ -33,22 +48,22 @@ func ParseHtml(rdb *redis.Client, productChannel chan []Product) http.HandlerFun
 		limit := r.URL.Query().Get("limit")
 		if limit == "" {
 			http.Error(w, "limit parameter is required (only numbers)", http.StatusBadRequest)
+			return
 		}
 
-		skip := r.URL.Query().Get("skip")
-		if skip == "" {
+		offset := r.URL.Query().Get("offset")
+		if offset == "" {
 			http.Error(w, "skip parameter is required (only numbers)", http.StatusBadRequest)
+			return
 		}
 
-		url := "https://uastore.com.ua/catalog/noutbuki/" + sortOpt + "/page-all"
-		err, products := goParse(url, skip, limit)
+		url := pageUrl + catalogPath + sortOpt + "/page-all"
+		err, products := goParse(url, offset, limit)
 		if err != nil {
 			http.Error(w, "parsing error", http.StatusInternalServerError)
 			return
 		}
-
 		productChannel <- products
-
 		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 		fmt.Fprintln(w, "Parse complete")
 	}
@@ -56,29 +71,32 @@ func ParseHtml(rdb *redis.Client, productChannel chan []Product) http.HandlerFun
 
 func validSortOpt(sortOpt string) bool {
 	var validSortOpts = []string{
-		"sort-position", "sort-price", "sort-price_desc",
-		"sort-name", "sort-name_desc", "sort-rating",
-		"sort-rating_desc",
+		"position", "price", "price_desc",
+		"name", "name_desc", "rating",
+		"rating_desc",
 	}
+
 	for _, validSortOpt := range validSortOpts {
 		if sortOpt == validSortOpt {
 			return true
 		}
 	}
+
 	return false
 }
 
-func goParse(url, skipStr, limitStr string) (error, []Product) {
+func goParse(url, offsetStr, limitStr string) (error, []Product) {
 	resp, err := http.Get(url)
 	if err != nil {
 		log.Printf("http get error: %d", err)
 		return err, nil
 	}
+
 	defer resp.Body.Close()
 
-	skip, err := strconv.Atoi(skipStr)
+	offset, err := strconv.Atoi(offsetStr)
 	if err != nil {
-		log.Printf("skip parameter is invalid")
+		log.Printf("offset parameter is invalid")
 		return err, nil
 	}
 
@@ -88,7 +106,7 @@ func goParse(url, skipStr, limitStr string) (error, []Product) {
 		return err, nil
 	}
 
-	products, err := extractProduct(resp.Body, skip, limit)
+	products, err := extractProduct(resp.Body, offset, limit)
 	if err != nil {
 		log.Println(err)
 		return err, nil
@@ -97,31 +115,79 @@ func goParse(url, skipStr, limitStr string) (error, []Product) {
 	return nil, products
 }
 
-func extractProduct(body io.ReadCloser, skip, limit int) ([]Product, error) {
+func extractProduct(r io.Reader, offset, limit int) ([]Product, error) {
 	var (
 		products []Product
 		count    int
 	)
-	doc, err := goquery.NewDocumentFromReader(body)
+	doc, err := goquery.NewDocumentFromReader(r)
 	if err != nil {
-		return nil, fmt.Errorf("goquery.NewDocumentFromReader: %w", err)
+		return nil, fmt.Errorf("goquery document error: %s", err)
 	}
 
-	doc.Find(".fn_transfer.clearfix").Each(func(i int, s *goquery.Selection) {
-		if skip > 0 && count < skip {
+	doc.Find("a.product_preview__name_link").Each(func(i int, s *goquery.Selection) {
+		if offset > 0 && count < offset {
 			count++
 			return
 		}
+
 		if limit > 0 && len(products) >= limit {
 			return
 		}
-		name := strings.TrimSpace(s.Find(".product_preview__name_link").Contents().Not(".product_preview__sku").Text())
-		specs := strings.TrimSpace(s.Find(".product_preview__annotation p").Text())
+
+		href, _ := s.Attr("href")
+		name := strings.TrimSpace(s.Contents().Not(".product_preview__sku").Text())
+		spec := processProduct(pageUrl + href)
 		products = append(products, Product{
 			Name:  name,
-			Specs: specs,
+			Specs: spec,
 		})
 	})
 	return products, nil
+}
 
+func processProduct(url string) Specs {
+	var (
+		spec = []string{
+			"Диагональ:", "Разрешение:", "Видеокарта:",
+			"Процессор:", "Объем оперативной памяти:", "Объем накопителя:",
+		}
+	)
+	resp, err := http.Get(url)
+	if err != nil {
+		log.Printf("http get (product) error: %d", err)
+	}
+
+	defer resp.Body.Close()
+	doc, err := goquery.NewDocumentFromReader(resp.Body)
+	if err != nil {
+		log.Printf("goquery document (product) error: %s", err)
+	}
+
+	prod := Specs{}
+	doc.Find("ul.d-sm-flex.flex-sm-wrap.features.mobile_tab__content").Each(func(i int, s *goquery.Selection) {
+		s.Find("li").Each(func(i int, s *goquery.Selection) {
+			name := strings.TrimSpace(s.Find(".features__name").Text())
+			val := strings.TrimSpace(s.Find(".features__value").Text())
+			for _, s := range spec {
+				if strings.Contains(name, s) {
+					switch s {
+					case "Диагональ:":
+						prod.displaySize = name + " " + val
+					case "Разрешение:":
+						prod.displayResolution = name + " " + val
+					case "Видеокарта:":
+						prod.gpu = name + " " + val
+					case "Процессор:":
+						prod.cpu = name + " " + val
+					case "Объем оперативной памяти:":
+						prod.ram = name + " " + val
+					case "Объем накопителя:":
+						prod.hardDrives = name + " " + val
+					}
+				}
+			}
+		})
+	})
+	return prod
 }

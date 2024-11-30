@@ -14,7 +14,7 @@ func SetupRoutes(mux *http.ServeMux, rdb *redis.Client, productChannel chan []ha
 		return
 	})
 
-	mux.HandleFunc("/parse", handlers.ParseHtml(rdb, productChannel))
+	mux.HandleFunc("/parse", handlers.ParseHtml(productChannel))
 	//mux.HandleFunc("/getdata", handlers.GetDataFromRedis(rdb))
 
 	fs := http.FileServer(http.Dir("./html")) //Del
