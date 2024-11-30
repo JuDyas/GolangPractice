@@ -17,12 +17,12 @@ const (
 )
 
 type Specs struct {
-	displaySize       string
-	displayResolution string
-	cpu               string
-	ram               string
-	hardDrives        string
-	gpu               string
+	DisplaySize       string
+	DisplayResolution string
+	Cpu               string
+	Ram               string
+	HardDrives        string
+	Gpu               string
 }
 
 type Product struct {
@@ -173,17 +173,17 @@ func processProduct(url string) Specs {
 				if strings.Contains(name, s) {
 					switch s {
 					case "Диагональ:":
-						prod.displaySize = name + " " + val
+						prod.DisplaySize = name + " " + val
 					case "Разрешение:":
-						prod.displayResolution = name + " " + val
+						prod.DisplayResolution = name + " " + val
 					case "Видеокарта:":
-						prod.gpu = name + " " + val
+						prod.Gpu = name + " " + val
 					case "Процессор:":
-						prod.cpu = name + " " + val
+						prod.Cpu = name + " " + val
 					case "Объем оперативной памяти:":
-						prod.ram = name + " " + val
+						prod.Ram = name + " " + val
 					case "Объем накопителя:":
-						prod.hardDrives = name + " " + val
+						prod.HardDrives = name + " " + val
 					}
 				}
 			}

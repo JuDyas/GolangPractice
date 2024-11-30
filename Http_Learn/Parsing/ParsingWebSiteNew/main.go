@@ -12,13 +12,12 @@ import (
 	"github.com/joho/godotenv"
 )
 
-// global flag port
+var port = flag.String("port", ":8080", "Port to listen on")
 
 func main() {
 	var (
-		rdb  = database.SetupRedis()
-		mux  = http.NewServeMux()
-		port = flag.String("port", ":8080", "http port")
+		rdb = database.SetupRedis()
+		mux = http.NewServeMux()
 	)
 	err := godotenv.Load(".env")
 	if err != nil {
@@ -34,7 +33,6 @@ func main() {
 	SetupRoutes(mux, rdb, productChannel)
 	go tasks.InitCron(productChannel, key, rdb)
 	//Graceful shutdown
-
 	err = http.ListenAndServe(*port, mux)
 	if err != nil {
 		log.Fatalf("start server error: %s", err)
