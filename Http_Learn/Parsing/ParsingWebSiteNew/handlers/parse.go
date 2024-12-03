@@ -173,17 +173,17 @@ func processProduct(url string) Specs {
 				if strings.Contains(name, s) {
 					switch s {
 					case "Диагональ:":
-						prod.DisplaySize = name + " " + val
+						prod.DisplaySize = val
 					case "Разрешение:":
-						prod.DisplayResolution = name + " " + val
+						prod.DisplayResolution = val
 					case "Видеокарта:":
-						prod.Gpu = name + " " + val
+						prod.Gpu = val
 					case "Процессор:":
-						prod.Cpu = name + " " + val
+						prod.Cpu = val
 					case "Объем оперативной памяти:":
-						prod.Ram = name + " " + val
+						prod.Ram = val
 					case "Объем накопителя:":
-						prod.HardDrives = name + " " + val
+						prod.HardDrives = val
 					}
 				}
 			}

@@ -30,12 +30,11 @@ func main() {
 	}
 
 	productChannel := make(chan []handlers.Product)
-	SetupRoutes(mux, rdb, productChannel)
+	SetupRoutes(mux, rdb, productChannel, key)
 	go tasks.InitCron(productChannel, key, rdb)
 	//Graceful shutdown
 	err = http.ListenAndServe(*port, mux)
 	if err != nil {
 		log.Fatalf("start server error: %s", err)
 	}
-	// Struct for handlers with object for fork with bd and cipher
 }
