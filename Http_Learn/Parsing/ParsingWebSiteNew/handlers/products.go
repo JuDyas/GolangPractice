@@ -1,42 +1,71 @@
 package handlers
 
 import (
-	"GolangPractice/Http_Learn/Parsing/ParsingWebSiteNew/utils"
 	"GolangPractice/Http_Learn/Parsing/vyzhenercipher"
 	"encoding/json"
 	"errors"
 	"net/http"
+	"reflect"
+	"strconv"
 
 	"github.com/go-redis/redis/v8"
 )
 
+type productResponse struct {
+	Products []ProductDTO `json:"products"`
+}
+
+type ProductDTO struct {
+	ID                string `json:"id"`
+	Name              string `json:"name"`
+	CPU               string `json:"cpu,omitempty" cipher:"true"`
+	RAM               string `json:"ram,omitempty" cipher:"true"`
+	DisplaySize       string `json:"display_size,omitempty" cipher:"true"`
+	DisplayResolution string `json:"display_resolution,omitempty" cipher:"true"`
+	HardDrives        string `json:"hard_drive,omitempty" cipher:"true"`
+	GPU               string `json:"gpu,omitempty" cipher:"true"`
+}
+
 func GetProducts(rdb *redis.Client) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var (
-			ctx      = r.Context()
-			prodName []string
+			ctx               = r.Context()
+			productNames      []ProductDTO
+			startPag, stopPag int64
+			page              = 1
+			pageSize          = 10
 		)
-		keys, err := rdb.Keys(ctx, "product:*").Result()
+
+		if p := r.URL.Query().Get("page"); p != "" {
+			page, _ = strconv.Atoi(p)
+		}
+
+		if ps := r.URL.Query().Get("pageSize"); ps != "" {
+			pageSize, _ = strconv.Atoi(ps)
+		}
+
+		startPag = int64((page - 1) * pageSize)
+		stopPag = startPag + int64(pageSize) - 1
+
+		keys, err := rdb.ZRange(ctx, "products:all_keys", startPag, stopPag).Result()
 		if err != nil {
-			http.Error(w, "Get data from db error 1", http.StatusInternalServerError)
+			http.Error(w, "cant fetch keys", http.StatusInternalServerError)
 			return
 		}
 
 		for _, key := range keys {
 			data, err := rdb.HGetAll(ctx, key).Result()
 			if err != nil {
-				http.Error(w, "Get data from db error 2", http.StatusInternalServerError)
+				http.Error(w, "can not fetch data", http.StatusInternalServerError)
 				return
 			}
 
-			if name, exists := data["name"]; exists {
-				prodName = append(prodName, name)
-				prodName = append(prodName, utils.HashMD5(name))
+			if name, exists := data["Name"]; exists {
+				productNames = append(productNames, ProductDTO{Name: name, ID: data["ID"]})
 			}
 		}
-
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(prodName)
+		json.NewEncoder(w).Encode(&productResponse{Products: productNames})
 	}
 }
 
@@ -59,25 +88,42 @@ func GetProduct(rdb *redis.Client, vKey string) http.HandlerFunc {
 		}
 
 		data, err := rdb.HGetAll(ctx, "product:"+id).Result()
-		if err == redis.Nil {
-			http.Error(w, "Product not found", http.StatusNotFound)
+		if errors.Is(err, redis.Nil) {
+			http.Error(w, "product not found", http.StatusNotFound)
 			return
 		} else if err != nil {
-			http.Error(w, "Failed to fetch product details", http.StatusInternalServerError)
+			http.Error(w, "failed to fetch product details", http.StatusInternalServerError)
 		}
 
-		decodedData := map[string]string{}
-		for k, v := range data {
-			if k != "name" {
-				decodedData[k] = vyzhenercipher.Decode(v, key)
-			} else {
-				decodedData[k] = v
-			}
-		}
+		product := parseProduct(data, vKey)
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(decodedData)
+		json.NewEncoder(w).Encode(product)
 	}
+}
+
+func parseProduct(data map[string]string, cipherKey string) ProductDTO {
+	var product ProductDTO
+	productVal := reflect.ValueOf(&product).Elem()
+	productType := productVal.Type()
+	for i := 0; i < productType.NumField(); i++ {
+		field := productType.Field(i)
+		tag := field.Tag.Get("cipher")
+		fieldValue := productVal.FieldByName(field.Name)
+
+		if !fieldValue.CanSet() {
+			continue
+		}
+
+		if val, ok := data[field.Name]; ok {
+			if tag == "true" {
+				fieldValue.SetString(vyzhenercipher.Decode(val, cipherKey))
+			} else {
+				fieldValue.SetString(val)
+			}
+		}
+	}
+	return product
 }
 
 func checkKey(key, vKey string) error {

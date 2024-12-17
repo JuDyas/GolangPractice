@@ -27,7 +27,7 @@ type Specs struct {
 
 type Product struct {
 	Name  string
-	Specs Specs
+	Specs Specs //details/info/data
 }
 
 // add Context
