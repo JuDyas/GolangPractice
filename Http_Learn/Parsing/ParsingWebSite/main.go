@@ -1,7 +1,7 @@
 package main
 
 import (
-	"GolangPractice/Http_Learn/Parsing/vyzhenercipher"
+	"GolangPractice/Http_Learn/Parsing/ParsingWebSiteNew/pkg/vyzhenercipher"
 	"context"
 	"encoding/json"
 	"flag"

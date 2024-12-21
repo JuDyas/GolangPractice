@@ -1,20 +1,20 @@
 package main
 
 import (
-	"GolangPractice/Http_Learn/Parsing/ParsingWebSiteNew/handlers"
+	handlers2 "GolangPractice/Http_Learn/Parsing/ParsingWebSiteNew/internal/handlers"
 	"net/http"
 
 	"github.com/go-redis/redis/v8"
 )
 
-func SetupRoutes(mux *http.ServeMux, rdb *redis.Client, productChannel chan []handlers.Product, key string) {
+func SetupRoutes(mux *http.ServeMux, rdb *redis.Client, productChannel chan []handlers2.Product, key string) {
 
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, "./html/index.html")
 		return
 	})
 
-	mux.HandleFunc("/parse", handlers.ParseHtml(productChannel))
-	mux.HandleFunc("/products", handlers.GetProducts(rdb))
-	mux.HandleFunc("/products/", handlers.GetProduct(rdb, key))
+	mux.HandleFunc("/parse", handlers2.ParseHtml(productChannel))
+	mux.HandleFunc("/products", handlers2.GetProducts(rdb))
+	mux.HandleFunc("/products/", handlers2.GetProduct(rdb, key))
 }

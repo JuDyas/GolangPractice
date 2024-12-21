@@ -1,7 +1,7 @@
 package handlers
 
 import (
-	"GolangPractice/Http_Learn/Parsing/vyzhenercipher"
+	"GolangPractice/Http_Learn/Parsing/ParsingWebSiteNew/pkg/vyzhenercipher"
 	"encoding/json"
 	"errors"
 	"net/http"

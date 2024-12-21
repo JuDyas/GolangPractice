@@ -1,9 +1,9 @@
 package main
 
 import (
-	"GolangPractice/Http_Learn/Parsing/ParsingWebSiteNew/database"
-	"GolangPractice/Http_Learn/Parsing/ParsingWebSiteNew/handlers"
-	"GolangPractice/Http_Learn/Parsing/ParsingWebSiteNew/tasks"
+	"GolangPractice/Http_Learn/Parsing/ParsingWebSiteNew/internal/database"
+	"GolangPractice/Http_Learn/Parsing/ParsingWebSiteNew/internal/handlers"
+	"GolangPractice/Http_Learn/Parsing/ParsingWebSiteNew/internal/tasks"
 	"flag"
 	"log"
 	"net/http"
