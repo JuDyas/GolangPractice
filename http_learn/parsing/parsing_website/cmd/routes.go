@@ -1,7 +1,7 @@
 package main
 
 import (
-	handlers2 "GolangPractice/Http_Learn/Parsing/ParsingWebSiteNew/internal/handlers"
+	handlers2 "GolangPractice/http_learn/parsing/parsing_website/internal/handlers"
 	"net/http"
 
 	"github.com/go-redis/redis/v8"

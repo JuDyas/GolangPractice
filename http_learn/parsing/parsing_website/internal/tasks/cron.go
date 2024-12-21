@@ -1,9 +1,9 @@
 package tasks
 
 import (
-	"GolangPractice/Http_Learn/Parsing/ParsingWebSiteNew/internal/handlers"
-	"GolangPractice/Http_Learn/Parsing/ParsingWebSiteNew/pkg/vyzhenercipher"
-	"GolangPractice/Http_Learn/Parsing/ParsingWebSiteNew/utils"
+	"GolangPractice/http_learn/parsing/parsing_website/internal/handlers"
+	"GolangPractice/http_learn/parsing/parsing_website/pkg/vyzhenercipher"
+	"GolangPractice/http_learn/parsing/parsing_website/utils"
 	"context"
 	"time"
 

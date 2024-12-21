@@ -1,7 +1,7 @@
 package main
 
 import (
-	"GolangPractice/Task9/workerpool"
+	"GolangPractice/tasks/task9/workerpool"
 	"bufio"
 	"context"
 	"flag"

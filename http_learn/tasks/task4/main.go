@@ -1,7 +1,7 @@
 package main
 
 import (
-	"GolangPractice/Task7/hasher"
+	"GolangPractice/tasks/task7/hasher"
 	"crypto/sha1"
 	"encoding/hex"
 	"fmt"
