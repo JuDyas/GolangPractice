@@ -16,14 +16,14 @@ type productResponse struct {
 }
 
 type ProductDTO struct {
-	ID                string `json:"id"`
-	Name              string `json:"name"`
-	CPU               string `json:"cpu,omitempty" cipher:"true"`
-	RAM               string `json:"ram,omitempty" cipher:"true"`
-	DisplaySize       string `json:"display_size,omitempty" cipher:"true"`
-	DisplayResolution string `json:"display_resolution,omitempty" cipher:"true"`
-	HardDrives        string `json:"hard_drive,omitempty" cipher:"true"`
-	GPU               string `json:"gpu,omitempty" cipher:"true"`
+	ID                 string `json:"id"`
+	Name               string `json:"name"`
+	Cpu                string `json:"cpu,omitempty" cipher:"true"`
+	RAM                string `json:"ram,omitempty" cipher:"true"`
+	Display_size       string `json:"display_size,omitempty" cipher:"true"`
+	Display_resolution string `json:"display_resolution,omitempty" cipher:"true"`
+	Hard_drives        string `json:"hard_drive,omitempty" cipher:"true"`
+	GPU                string `json:"gpu,omitempty" cipher:"true"`
 }
 
 func GetProducts(rdb *redis.Client) http.HandlerFunc {

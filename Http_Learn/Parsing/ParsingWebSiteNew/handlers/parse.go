@@ -16,7 +16,7 @@ const (
 	catalogPath = "/catalog/noutbuki/sort-"
 )
 
-type Specs struct {
+type Details struct {
 	DisplaySize       string
 	DisplayResolution string
 	Cpu               string
@@ -26,11 +26,9 @@ type Specs struct {
 }
 
 type Product struct {
-	Name  string
-	Specs Specs //details/info/data
+	Name    string
+	Details Details
 }
-
-// add Context
 
 func ParseHtml(productChannel chan []Product) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -139,14 +137,14 @@ func extractProduct(r io.Reader, offset, limit int) ([]Product, error) {
 		name := strings.TrimSpace(s.Contents().Not(".product_preview__sku").Text())
 		spec := processProduct(pageUrl + href)
 		products = append(products, Product{
-			Name:  name,
-			Specs: spec,
+			Name:    name,
+			Details: spec,
 		})
 	})
 	return products, nil
 }
 
-func processProduct(url string) Specs {
+func processProduct(url string) Details {
 	var (
 		spec = []string{
 			"Диагональ:", "Разрешение:", "Видеокарта:",
@@ -164,7 +162,7 @@ func processProduct(url string) Specs {
 		log.Printf("goquery document (product) error: %s", err)
 	}
 
-	prod := Specs{}
+	prod := Details{}
 	doc.Find("ul.d-sm-flex.flex-sm-wrap.features.mobile_tab__content").Each(func(i int, s *goquery.Selection) {
 		s.Find("li").Each(func(i int, s *goquery.Selection) {
 			name := strings.TrimSpace(s.Find(".features__name").Text())

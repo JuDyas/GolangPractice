@@ -28,14 +28,14 @@ func processProducts(prod []handlers.Product, rdb *redis.Client, key string) {
 		keyDB := "product:" + id
 
 		err := rdb.HSet(ctx, keyDB, []string{
-			"ID", id,
+			"Id", id,
 			"Name", p.Name,
-			"CPU", vyzhenercipher.Encode(p.Specs.Cpu, key),
-			"GPU", vyzhenercipher.Encode(p.Specs.Gpu, key),
-			"DisplaySize", vyzhenercipher.Encode(p.Specs.DisplaySize, key),
-			"DisplayResolution", vyzhenercipher.Encode(p.Specs.DisplayResolution, key),
-			"RAM", vyzhenercipher.Encode(p.Specs.Ram, key),
-			"HardDrives", vyzhenercipher.Encode(p.Specs.HardDrives, key),
+			"Cpu", vyzhenercipher.Encode(p.Details.Cpu, key),
+			"Gpu", vyzhenercipher.Encode(p.Details.Gpu, key),
+			"Display_size", vyzhenercipher.Encode(p.Details.DisplaySize, key),
+			"Display_resolution", vyzhenercipher.Encode(p.Details.DisplayResolution, key),
+			"Ram", vyzhenercipher.Encode(p.Details.Ram, key),
+			"Hard_drives", vyzhenercipher.Encode(p.Details.HardDrives, key),
 		}).Err()
 		if err != nil {
 			continue
