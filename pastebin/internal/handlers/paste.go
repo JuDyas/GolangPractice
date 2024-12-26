@@ -46,10 +46,26 @@ func GetPaste(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	//TODO: Изменить проверку для бесконечных паст
-	if !paste.ExpiresAt.IsZero() && time.Now().After(paste.ExpiresAt) {
+
+	if paste.TTL > 0 && paste.CreatedAt.Unix()+int64(paste.TTL) <= time.Now().Unix() {
 		c.JSON(http.StatusGone, gin.H{"error": "paste expired"})
 		return
 	}
-	c.JSON(http.StatusOK, paste)
+
+	pass, ok := c.GetQuery("pass")
+	if paste.Password != "" && pass != paste.Password {
+		if !ok {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "password is required"})
+		} else {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid password"})
+		}
+		return
+	}
+
+	publicPaste := models.PublicPaste{
+		ID:   paste.ID,
+		Text: paste.Text,
+	}
+
+	c.JSON(http.StatusOK, publicPaste)
 }
