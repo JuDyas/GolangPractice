@@ -19,6 +19,4 @@ func SetupRoutes(r *gin.Engine, jwtSecret []byte, port string) {
 	authorize.Use(auth.AuthorizeMiddleware(jwtSecret))
 	authorize.DELETE("/pastes/:id", handlers.DeletePaste)
 	authorize.GET("/pastes", handlers.GetAllPastes)
-	//TODO: handle error with zap logger
-	r.Run(port)
 }
