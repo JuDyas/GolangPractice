@@ -3,17 +3,18 @@ package routes
 import (
 	"github.com/JuDyas/GolangPractice/pastebin/internal/auth"
 	"github.com/JuDyas/GolangPractice/pastebin/internal/handlers"
+	"github.com/JuDyas/GolangPractice/pastebin/internal/servises"
 	"github.com/gin-gonic/gin"
 )
 
-func SetupRoutes(r *gin.Engine, jwtSecret []byte, port string) {
+func SetupRoutes(r *gin.Engine, jwtSecret []byte, pasteService *servises.PasteService) {
 	v1 := r.Group("/v1")
 	//Authorization
 	v1.POST("/auth/register", handlers.Register(jwtSecret))
 	v1.POST("/auth/login", handlers.Login(jwtSecret))
 	//Pasts
-	v1.POST("/pastes", handlers.CreatePaste)
-	v1.GET("/pastes/:id", handlers.GetPaste)
+	v1.POST("/pastes", handlers.CreatePasteHandler(pasteService))
+	//v1.GET("/pastes/:id", handlers.GetPaste)
 	//secured group
 	authorize := v1.Group("/")
 	authorize.Use(auth.AuthorizeMiddleware(jwtSecret))

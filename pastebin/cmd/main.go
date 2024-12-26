@@ -5,6 +5,8 @@ import (
 	"log"
 	"os"
 
+	"github.com/JuDyas/GolangPractice/pastebin/internal/servises"
+
 	"go.mongodb.org/mongo-driver/v2/mongo"
 
 	"github.com/JuDyas/GolangPractice/pastebin/internal/routes"
@@ -16,9 +18,10 @@ import (
 )
 
 type App struct {
-	DBClient  *mongo.Client
-	Router    *gin.Engine
-	JWTSecret []byte
+	DBClient     *mongo.Client
+	Router       *gin.Engine
+	JWTSecret    []byte
+	PasteService *servises.PasteService
 }
 
 func (app *App) Initialize(uri, port string) {
@@ -34,8 +37,9 @@ func (app *App) Initialize(uri, port string) {
 		log.Fatal("JWT_SECRET env variable not set")
 	}
 
+	app.PasteService = servises.NewPasteService(app.DBClient)
 	app.Router = gin.Default()
-	routes.SetupRoutes(app.Router, app.JWTSecret, port)
+	routes.SetupRoutes(app.Router, app.JWTSecret, app.PasteService)
 }
 
 func main() {
