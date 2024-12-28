@@ -22,6 +22,7 @@ type App struct {
 	Router       *gin.Engine
 	JWTSecret    []byte
 	PasteService *servises.PasteService
+	UserService  *servises.UserService
 }
 
 func (app *App) Initialize(uri, port string) {
@@ -38,8 +39,9 @@ func (app *App) Initialize(uri, port string) {
 	}
 
 	app.PasteService = servises.NewPasteService(app.DBClient)
+	app.UserService = servises.NewUserService(app.DBClient)
 	app.Router = gin.Default()
-	routes.SetupRoutes(app.Router, app.JWTSecret, app.PasteService)
+	routes.SetupRoutes(app.Router, app.JWTSecret, app.PasteService, app.UserService)
 }
 
 func main() {

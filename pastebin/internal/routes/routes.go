@@ -7,11 +7,11 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func SetupRoutes(r *gin.Engine, jwtSecret []byte, pasteService *servises.PasteService) {
+func SetupRoutes(r *gin.Engine, jwtSecret []byte, pasteService *servises.PasteService, userService *servises.UserService) {
 	v1 := r.Group("/v1")
 	//Authorization
-	v1.POST("/auth/register", handlers.Register(jwtSecret))
-	v1.POST("/auth/login", handlers.Login(jwtSecret))
+	v1.POST("/auth/register", handlers.Register(userService))
+	v1.POST("/auth/login", handlers.Login(userService, jwtSecret))
 	//Pasts
 	v1.POST("/pastes", handlers.CreatePasteHandler(pasteService))
 	v1.GET("/pastes/:id", handlers.GetPasteHandler(pasteService))
