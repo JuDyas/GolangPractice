@@ -14,7 +14,7 @@ func SetupRoutes(r *gin.Engine, jwtSecret []byte, pasteService *servises.PasteSe
 	v1.POST("/auth/login", handlers.Login(jwtSecret))
 	//Pasts
 	v1.POST("/pastes", handlers.CreatePasteHandler(pasteService))
-	//v1.GET("/pastes/:id", handlers.GetPaste)
+	v1.GET("/pastes/:id", handlers.GetPasteHandler(pasteService))
 	//secured group
 	authorize := v1.Group("/")
 	authorize.Use(auth.AuthorizeMiddleware(jwtSecret))

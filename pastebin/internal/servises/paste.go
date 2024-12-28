@@ -4,6 +4,8 @@ import (
 	"context"
 	"time"
 
+	"go.mongodb.org/mongo-driver/v2/bson"
+
 	"github.com/JuDyas/GolangPractice/pastebin/models"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/v2/mongo"
@@ -28,4 +30,13 @@ func (ps *PasteService) CreatePaste(paste *models.Paste) error {
 	}
 
 	return nil
+}
+
+func (ps *PasteService) GetPaste(id string) (*models.Paste, error) {
+	var paste models.Paste
+	err := ps.DB.FindOne(context.Background(), bson.M{"_id": id}).Decode(&paste)
+	if err != nil {
+		return nil, err
+	}
+	return &paste, nil
 }
