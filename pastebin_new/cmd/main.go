@@ -4,6 +4,8 @@ import (
 	"log"
 	"os"
 
+	"github.com/JuDyas/GolangPractice/pastebin_new/internal/handlers"
+
 	"github.com/JuDyas/GolangPractice/pastebin_new/internal/routes"
 
 	"github.com/JuDyas/GolangPractice/pastebin_new/internal/repositories"
@@ -16,14 +18,17 @@ import (
 	"go.mongodb.org/mongo-driver/v2/mongo"
 )
 
+// App - application struct
 type App struct {
-	DBClient    *mongo.Client
-	Router      *gin.Engine
-	JWTSecret   []byte
-	UserService services.UserService
+	DBClient     *mongo.Client
+	Router       *gin.Engine
+	JWTSecret    []byte
+	UserService  services.UserService
+	PasteService services.PasteService
 }
 
 func (app *App) Init(uri string) {
+	//.env
 	if err := godotenv.Load(".env"); err != nil {
 		log.Fatal("Error loading .env file")
 	}
@@ -33,20 +38,29 @@ func (app *App) Init(uri string) {
 		log.Fatal("Error loading JWT_SECRET")
 	}
 
+	//Data-Base
 	app.DBClient = db.ConnectDatabase(uri)
 	mdb := app.DBClient.Database("pastebin")
+	//Auth
 	userRepository := repositories.NewUserRepository(mdb.Collection("users"))
 	app.UserService = services.NewUserService(userRepository)
+	//Pastes
+	pasteRepository := repositories.NewPasteRepository(mdb.Collection("pastes"))
+	app.PasteService = services.NewPasteService(pasteRepository)
+	pasteHandler := handlers.NewPasteHandler(app.PasteService)
+	//Router
 	app.Router = gin.Default()
-	routes.SetupRoutes(app.Router, app.UserService, app.JWTSecret)
+	routes.SetupRoutes(app.Router, app.UserService, app.JWTSecret, pasteHandler)
 }
 
 func main() {
+	//Config
 	conf, err := config.LoadConfig()
 	if err != nil {
 		panic(err)
 	}
 
+	//Innit application
 	app := App{}
 	app.Init(conf.URI)
 	err = app.Router.Run(conf.Port)
