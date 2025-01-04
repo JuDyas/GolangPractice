@@ -38,7 +38,7 @@ func (app *App) Init(uri string) {
 	userRepository := repositories.NewUserRepository(mdb.Collection("users"))
 	app.UserService = services.NewUserService(userRepository)
 	app.Router = gin.Default()
-	routes.SetupRoutes(app.Router, app.UserService)
+	routes.SetupRoutes(app.Router, app.UserService, app.JWTSecret)
 }
 
 func main() {

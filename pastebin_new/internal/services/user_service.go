@@ -15,6 +15,7 @@ import (
 type UserService interface {
 	CreateUser(ctx context.Context, email, password string) error
 	GetUser(ctx context.Context, emailOrID string) (*models.User, error)
+	Authenticate(ctx context.Context, email, password string) (*models.User, error)
 }
 
 type userServiceImpl struct {
@@ -72,4 +73,22 @@ func (u *userServiceImpl) GetUser(ctx context.Context, emailOrID string) (*model
 
 		return user, nil
 	}
+}
+
+func (u *userServiceImpl) Authenticate(ctx context.Context, email, password string) (*models.User, error) {
+	user, err := u.repo.FindByEmail(ctx, email)
+	if err != nil {
+		return nil, fmt.Errorf("error getting user: %v", err)
+	}
+
+	if user == nil {
+		return nil, fmt.Errorf("user not found")
+	}
+
+	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
+	if err != nil {
+		return nil, fmt.Errorf("password incorrect")
+	}
+
+	return user, nil
 }
