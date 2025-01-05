@@ -1,54 +1,80 @@
 package handlers
 
 import (
-	"errors"
+	"log"
 	"net/http"
 
-	"github.com/JuDyas/GolangPractice/pastebin/internal/services"
-	"github.com/JuDyas/GolangPractice/pastebin/models"
+	"github.com/JuDyas/GolangPractice/pastebin_new/internal/services"
+	"github.com/JuDyas/GolangPractice/pastebin_new/models"
 	"github.com/gin-gonic/gin"
 )
 
-type PasteHandler struct {
+type PasteHandler interface {
+	CreatePaste(c *gin.Context)
+	GetPaste(c *gin.Context)
+}
+
+type pasteHandlerImpl struct {
 	service services.PasteService
 }
 
-func NewPasteHandler(service services.PasteService) *PasteHandler {
-	return &PasteHandler{service: service}
+func NewPasteHandler(service services.PasteService) PasteHandler {
+	return pasteHandlerImpl{service: service}
 }
 
-func (ph *PasteHandler) CreatePaste(c *gin.Context) {
+func (h pasteHandlerImpl) CreatePaste(c *gin.Context) {
 	var paste models.Paste
 	if err := c.ShouldBindJSON(&paste); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": errors.New("invalid data")})
+		log.Printf("bindJSON error: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid input"})
 		return
 	}
 
-	if err := ph.service.CreatePaste(c.Request.Context(), &paste); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": errors.New("internal server error")})
+	if err := h.service.CreatePaste(c.Request.Context(), &paste); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "create paste error"})
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{"id": paste.ID})
+	c.JSON(http.StatusCreated, gin.H{"paste id": paste.ID})
 }
 
-func (ph *PasteHandler) GetPaste(c *gin.Context) {
-	var (
-		id              = c.Param("id")
-		pasteExpiredErr = errors.New("paste expired")
-		password        = c.Query("password")
-		invalidPassword = errors.New("invalid password")
-	)
-	paste, err := ph.service.GetPaste(c.Request.Context(), id, password)
-	if err != nil {
-		if errors.Is(pasteExpiredErr, err) {
-			c.JSON(http.StatusNotFound, gin.H{"error": pasteExpiredErr})
-		} else if errors.Is(invalidPassword, err) {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": invalidPassword})
-		} else {
-			c.JSON(http.StatusNotFound, gin.H{"error": errors.New("paste not found")})
-		}
+func (h pasteHandlerImpl) GetPaste(c *gin.Context) {
+	pasteVal, exists := c.Get("paste")
+	if !exists {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "paste not found (ctx)"})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"paste": paste})
+
+	paste, ok := pasteVal.(*models.Paste)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "invalid paste object"})
+		return
+	}
+
+	if paste.Deleted {
+		c.JSON(http.StatusNotFound, gin.H{"error": "paste has been deleted"})
+		return
+	}
+
+	var input models.InputPaste
+	_ = c.ShouldBindJSON(&input)
+	input.IP = c.ClientIP()
+	email, exist := c.Get("email")
+	if exist {
+		input.Email = email.(string)
+	}
+
+	err := h.service.GetPaste(c.Request.Context(), &input, paste)
+	//TODO: Разобраться с ошибками
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	pasteDTL := models.PasteDTl{
+		ID:      paste.ID,
+		Content: paste.Content,
+	}
+
+	c.JSON(http.StatusOK, gin.H{"paste": pasteDTL})
 }

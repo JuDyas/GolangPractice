@@ -1,23 +1,25 @@
 package routes
 
 import (
-	"github.com/JuDyas/GolangPractice/pastebin/internal/auth"
-	"github.com/JuDyas/GolangPractice/pastebin/internal/handlers"
-	"github.com/JuDyas/GolangPractice/pastebin/internal/services"
+	"github.com/JuDyas/GolangPractice/pastebin_new/internal/auth"
+	"github.com/JuDyas/GolangPractice/pastebin_new/internal/handlers"
+	"github.com/JuDyas/GolangPractice/pastebin_new/internal/services"
 	"github.com/gin-gonic/gin"
 )
 
-func SetupRoutes(r *gin.Engine, jwtSecret []byte, pasteHandler *handlers.PasteHandler, userService services.UserService) {
+func SetupRoutes(r *gin.Engine, userService services.UserService, pasteService services.PasteService, jwtSecret []byte, pasteHandler handlers.PasteHandler, adminHandler handlers.AdminPasteHandler) {
 	v1 := r.Group("/v1")
-	//Authorization
+	//Authorisation
 	v1.POST("/auth/register", handlers.Register(userService))
 	v1.POST("/auth/login", handlers.Login(userService, jwtSecret))
-	//Pasts
+	//Pastes
+	pastes := v1.Group("/pastes")
+	pastes.Use(auth.PasteMiddleware(pasteService, jwtSecret))
 	v1.POST("/pastes", pasteHandler.CreatePaste)
-	v1.GET("/pastes/:id", pasteHandler.GetPaste)
-	//secured group
-	authorize := v1.Group("/")
-	authorize.Use(auth.AuthorizeMiddleware(jwtSecret))
-	//authorize.DELETE("/pastes/:id", handlers.DeletePaste)
-	//authorize.GET("/pastes", handlers.GetAllPastes)
+	pastes.GET("/:id", pasteHandler.GetPaste)
+	//Admin group
+	admin := v1.Group("/admin")
+	admin.Use(auth.AuthoriseMiddleware(jwtSecret, "admin"))
+	admin.DELETE("/pastes/:id", adminHandler.DeletePaste)
+	admin.POST("/pastes", adminHandler.ListPastes)
 }
