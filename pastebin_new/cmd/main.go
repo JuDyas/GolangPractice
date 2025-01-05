@@ -25,6 +25,7 @@ type App struct {
 	JWTSecret    []byte
 	UserService  services.UserService
 	PasteService services.PasteService
+	AdminService services.AdminPasteService
 }
 
 func (app *App) Init(uri string) {
@@ -48,9 +49,12 @@ func (app *App) Init(uri string) {
 	pasteRepository := repositories.NewPasteRepository(mdb.Collection("pastes"))
 	app.PasteService = services.NewPasteService(pasteRepository)
 	pasteHandler := handlers.NewPasteHandler(app.PasteService)
+	//Admin
+	app.AdminService = services.NewAdminPasteService(pasteRepository)
+	adminHandler := handlers.NewAdminHandler(app.AdminService)
 	//Router
 	app.Router = gin.Default()
-	routes.SetupRoutes(app.Router, app.UserService, app.PasteService, app.JWTSecret, pasteHandler)
+	routes.SetupRoutes(app.Router, app.UserService, app.PasteService, app.JWTSecret, pasteHandler, adminHandler)
 }
 
 func main() {

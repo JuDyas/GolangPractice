@@ -51,6 +51,11 @@ func (h pasteHandlerImpl) GetPaste(c *gin.Context) {
 		return
 	}
 
+	if paste.Deleted {
+		c.JSON(http.StatusNotFound, gin.H{"error": "paste has been deleted"})
+		return
+	}
+
 	var input models.InputPaste
 	_ = c.ShouldBindJSON(&input)
 	input.IP = c.ClientIP()
@@ -66,5 +71,10 @@ func (h pasteHandlerImpl) GetPaste(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"paste": paste})
+	pasteDTL := models.PasteDTl{
+		ID:      paste.ID,
+		Content: paste.Content,
+	}
+
+	c.JSON(http.StatusOK, gin.H{"paste": pasteDTL})
 }

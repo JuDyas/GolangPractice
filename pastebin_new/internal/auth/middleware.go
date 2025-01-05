@@ -12,7 +12,7 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-func AuthoriseMiddleware(jwtSecret []byte) gin.HandlerFunc {
+func AuthoriseMiddleware(jwtSecret []byte, requiredRole ...string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authHeader := c.Request.Header.Get("Authorization")
 		if authHeader == "" || !strings.HasPrefix(authHeader, "Bearer ") {
@@ -51,8 +51,27 @@ func AuthoriseMiddleware(jwtSecret []byte) gin.HandlerFunc {
 		}
 
 		c.Set("email", email)
+		if len(requiredRole) > 0 {
+			role, ok := claims["role"].(string)
+			if !ok || !contains(requiredRole, role) {
+				c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
+				c.Abort()
+				return
+			}
+			c.Set("role", role)
+		}
+
 		c.Next()
 	}
+}
+
+func contains(roles []string, role string) bool {
+	for _, r := range roles {
+		if r == role {
+			return true
+		}
+	}
+	return false
 }
 
 func PasteMiddleware(ps services.PasteService, jwtSecret []byte) gin.HandlerFunc {
