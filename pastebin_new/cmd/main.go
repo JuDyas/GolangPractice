@@ -50,7 +50,7 @@ func (app *App) Init(uri string) {
 	pasteHandler := handlers.NewPasteHandler(app.PasteService)
 	//Router
 	app.Router = gin.Default()
-	routes.SetupRoutes(app.Router, app.UserService, app.JWTSecret, pasteHandler)
+	routes.SetupRoutes(app.Router, app.UserService, app.PasteService, app.JWTSecret, pasteHandler)
 }
 
 func main() {

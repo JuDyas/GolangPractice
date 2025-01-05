@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net"
 	"net/mail"
+	"time"
 
 	"github.com/JuDyas/GolangPractice/pastebin_new/internal/repositories"
 	"github.com/JuDyas/GolangPractice/pastebin_new/models"
@@ -14,6 +15,8 @@ import (
 
 type PasteService interface {
 	CreatePaste(ctx context.Context, paste *models.Paste) error
+	GetPaste(ctx context.Context, input *models.InputPaste, paste *models.Paste) error
+	GetPasteByID(ctx context.Context, id string) (*models.Paste, error)
 }
 
 type pasteServiceImpl struct {
@@ -47,6 +50,34 @@ func (ps pasteServiceImpl) CreatePaste(ctx context.Context, paste *models.Paste)
 
 	err := ps.repo.CreatePaste(ctx, paste)
 	return err
+}
+
+func (ps pasteServiceImpl) GetPaste(ctx context.Context, input *models.InputPaste, paste *models.Paste) error {
+	if paste.TTL > 0 && paste.CreatedAt.Add(time.Duration(paste.TTL)*time.Second).Before(time.Now()) {
+		return errors.New("ttl has expired")
+	}
+
+	if paste.Password != "" && bcrypt.CompareHashAndPassword([]byte(paste.Password), []byte(input.Password)) != nil {
+		return errors.New("password is invalid")
+	}
+
+	if paste.AllowedEmail != "" && input.Email != paste.AllowedEmail {
+		return errors.New("email is invalid")
+	}
+
+	if paste.AllowedIp != "" && input.IP != paste.AllowedIp {
+		return errors.New("ip is invalid")
+	}
+
+	if paste.Authorized != false && input.Email == "" {
+		return errors.New("unauthorized user")
+	}
+
+	return nil
+}
+
+func (ps pasteServiceImpl) GetPasteByID(ctx context.Context, id string) (*models.Paste, error) {
+	return ps.repo.GetPasteByID(ctx, id)
 }
 
 func isValidEmail(email string) bool {

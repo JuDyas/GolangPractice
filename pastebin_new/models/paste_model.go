@@ -17,3 +17,9 @@ type PasteDTl struct {
 	ID   string `json:"id" bson:"_id"`
 	Text string `json:"text" bson:"text"`
 }
+
+type InputPaste struct {
+	Password string `json:"password"`
+	Email    string
+	IP       string
+}

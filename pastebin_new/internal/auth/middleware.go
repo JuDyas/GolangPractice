@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/JuDyas/GolangPractice/pastebin_new/internal/services"
+
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 )
@@ -41,13 +43,6 @@ func AuthoriseMiddleware(jwtSecret []byte) gin.HandlerFunc {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid or expired token"})
 		}
 
-		userID, ok := claims["sub"].(string)
-		if !ok {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid token payload"})
-			c.Abort()
-			return
-		}
-
 		email, ok := claims["mail"].(string)
 		if !ok {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid token payload"})
@@ -55,8 +50,33 @@ func AuthoriseMiddleware(jwtSecret []byte) gin.HandlerFunc {
 			return
 		}
 
-		c.Set("userID", userID)
 		c.Set("email", email)
+		c.Next()
+	}
+}
+
+func PasteMiddleware(ps services.PasteService, jwtSecret []byte) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		pasteID := c.Param("id")
+		paste, err := ps.GetPasteByID(c.Request.Context(), pasteID)
+		if err != nil {
+			c.JSON(http.StatusNotFound, gin.H{"error": "paste not found"})
+			c.Abort()
+			return
+		}
+
+		c.Set("paste", paste)
+		if paste.AllowedEmail == "" && paste.Authorized == false {
+			c.Next()
+			return
+		}
+
+		authorise := AuthoriseMiddleware(jwtSecret)
+		authorise(c)
+		if c.IsAborted() {
+			return
+		}
+
 		c.Next()
 	}
 }

@@ -11,6 +11,7 @@ import (
 
 type PasteHandler interface {
 	CreatePaste(c *gin.Context)
+	GetPaste(c *gin.Context)
 }
 
 type pasteHandlerImpl struct {
@@ -35,4 +36,35 @@ func (h pasteHandlerImpl) CreatePaste(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusCreated, gin.H{"paste id": paste.ID})
+}
+
+func (h pasteHandlerImpl) GetPaste(c *gin.Context) {
+	pasteVal, exists := c.Get("paste")
+	if !exists {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "paste not found (ctx)"})
+		return
+	}
+
+	paste, ok := pasteVal.(*models.Paste)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "invalid paste object"})
+		return
+	}
+
+	var input models.InputPaste
+	_ = c.ShouldBindJSON(&input)
+	input.IP = c.ClientIP()
+	email, exist := c.Get("email")
+	if exist {
+		input.Email = email.(string)
+	}
+
+	err := h.service.GetPaste(c.Request.Context(), &input, paste)
+	//TODO: Разобраться с ошибками
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"paste": paste})
 }
