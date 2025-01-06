@@ -2,7 +2,9 @@ version: "4.37"
 
 services:
   pastebin:
-    build: .
+    build:
+      context: .
+    image: judyas/pastebin_app:latest
     ports:
       - "8080:8080"
     env_file:
@@ -11,7 +13,7 @@ services:
       - mongo
 
   mongo:
-    image: mongo
+    image: mongo:latest
     ports:
       - "27017:27017"
     volumes:
