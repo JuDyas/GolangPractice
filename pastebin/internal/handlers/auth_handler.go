@@ -2,9 +2,10 @@ package handlers
 
 import (
 	"errors"
-	"fmt"
 	"log"
 	"net/http"
+
+	"github.com/JuDyas/GolangPractice/pastebin_new/dto"
 
 	"github.com/JuDyas/GolangPractice/pastebin_new/internal/auth"
 
@@ -15,26 +16,22 @@ import (
 
 func Register(us services.UserService) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		var input struct {
-			Email    string `json:"email" binding:"required,email"`
-			Password string `json:"password" binding:"required,min=8,max=20"`
-		}
-
+		var input dto.AuthUser
 		if err := c.ShouldBind(&input); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid email or password"})
+			c.JSON(http.StatusBadRequest, gin.H{"error": dto.InvalidInputErr})
 			//TODO: add zap logger
-			log.Printf("bindJson error: %v", err)
+			log.Println(dto.BindJsonErr, err)
 			return
 		}
 
 		err := us.CreateUser(c.Request.Context(), input.Email, input.Password)
 		if err != nil {
-			if errors.Is(err, fmt.Errorf("user already exists")) {
-				c.JSON(http.StatusConflict, gin.H{"error": "user already exists"})
+			if errors.Is(err, dto.UserExistErr) {
+				c.JSON(http.StatusConflict, gin.H{"error": dto.UserExistErr.Error()})
 			} else {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create user"})
+				c.JSON(http.StatusInternalServerError, gin.H{"error": dto.FailedCreateUserErr})
 				//TODO: add zap logger
-				log.Printf("failed to create user: %v", err)
+				log.Println(dto.FailedCreateUserErr, err)
 			}
 
 			return
@@ -46,24 +43,20 @@ func Register(us services.UserService) gin.HandlerFunc {
 
 func Login(us services.UserService, jwtSecret []byte) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		var input struct {
-			Email    string `json:"email" binding:"required,email"`
-			Password string `json:"password" binding:"required,min=8,max=20"`
-		}
-
+		var input dto.AuthUser
 		if err := c.ShouldBind(&input); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid input"})
-			log.Printf("bindJson error: %v", err)
+			c.JSON(http.StatusBadRequest, gin.H{"error": dto.InvalidInputErr})
+			log.Println(dto.BindJsonErr, err)
 		}
 
 		user, err := us.Authenticate(c.Request.Context(), input.Email, input.Password)
 		if err != nil {
-			if errors.Is(err, fmt.Errorf("user not found")) {
-				c.JSON(http.StatusNotFound, gin.H{"error": "user does not exists"})
-			} else if errors.Is(err, fmt.Errorf("password incorrect")) {
-				c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid password"})
+			if errors.Is(err, dto.NonExistErr) {
+				c.JSON(http.StatusNotFound, gin.H{"error": dto.NonExistErr.Error()})
+			} else if errors.Is(err, dto.InvalidPasswordErr) {
+				c.JSON(http.StatusUnauthorized, gin.H{"error": dto.InvalidPasswordErr.Error()})
 			} else {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to login"})
+				c.JSON(http.StatusInternalServerError, gin.H{"error": dto.FailedLoginErr})
 			}
 			return
 		}
@@ -72,7 +65,7 @@ func Login(us services.UserService, jwtSecret []byte) gin.HandlerFunc {
 		if err != nil {
 			//TODO: add zap logger
 			log.Printf("failed to generate JWT: %v", err)
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to login"})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": dto.FailedLoginErr})
 			return
 		}
 

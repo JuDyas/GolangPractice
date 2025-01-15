@@ -4,8 +4,9 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/JuDyas/GolangPractice/pastebin_new/dto"
+
 	"github.com/JuDyas/GolangPractice/pastebin_new/internal/services"
-	"github.com/JuDyas/GolangPractice/pastebin_new/models"
 	"github.com/gin-gonic/gin"
 )
 
@@ -23,31 +24,27 @@ func NewPasteHandler(service services.PasteService) PasteHandler {
 }
 
 func (h pasteHandlerImpl) CreatePaste(c *gin.Context) {
-	var paste models.Paste
+	var paste dto.CreatePaste
 	if err := c.ShouldBindJSON(&paste); err != nil {
 		log.Printf("bindJSON error: %v", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid input"})
 		return
 	}
 
-	if err := h.service.CreatePaste(c.Request.Context(), &paste); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "create paste error"})
+	id, err := h.service.CreatePaste(c.Request.Context(), &paste)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err})
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{"paste id": paste.ID})
+	c.JSON(http.StatusCreated, gin.H{"paste id": id})
 }
 
 func (h pasteHandlerImpl) GetPaste(c *gin.Context) {
-	pasteVal, exists := c.Get("paste")
-	if !exists {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "paste not found (ctx)"})
-		return
-	}
-
-	paste, ok := pasteVal.(*models.Paste)
-	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "invalid paste object"})
+	id := c.Param("id")
+	paste, err := h.service.GetPasteByID(c.Request.Context(), id)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "paste not found"})
 		return
 	}
 
@@ -56,7 +53,7 @@ func (h pasteHandlerImpl) GetPaste(c *gin.Context) {
 		return
 	}
 
-	var input models.InputPaste
+	var input dto.GetPasteResponse
 	_ = c.ShouldBindJSON(&input)
 	input.IP = c.ClientIP()
 	email, exist := c.Get("email")
@@ -64,17 +61,16 @@ func (h pasteHandlerImpl) GetPaste(c *gin.Context) {
 		input.Email = email.(string)
 	}
 
-	err := h.service.GetPaste(c.Request.Context(), &input, paste)
-	//TODO: Разобраться с ошибками
+	err = h.service.GetPaste(&input, paste)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err})
 		return
 	}
 
-	pasteDTL := models.PasteDTl{
+	pasteResp := dto.PasteResponse{
 		ID:      paste.ID,
 		Content: paste.Content,
 	}
 
-	c.JSON(http.StatusOK, gin.H{"paste": pasteDTL})
+	c.JSON(http.StatusOK, gin.H{"paste": pasteResp})
 }

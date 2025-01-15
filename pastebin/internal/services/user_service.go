@@ -6,6 +6,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/JuDyas/GolangPractice/pastebin_new/dto"
+
 	"github.com/JuDyas/GolangPractice/pastebin_new/internal/repositories"
 	"github.com/JuDyas/GolangPractice/pastebin_new/models"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -14,8 +16,8 @@ import (
 
 type UserService interface {
 	CreateUser(ctx context.Context, email, password string) error
-	GetUser(ctx context.Context, emailOrID string) (*models.User, error)
-	Authenticate(ctx context.Context, email, password string) (*models.User, error)
+	GetUser(ctx context.Context, emailOrID string) (*dto.User, error)
+	Authenticate(ctx context.Context, email, password string) (*dto.User, error)
 }
 
 type userServiceImpl struct {
@@ -41,12 +43,12 @@ func (u *userServiceImpl) CreateUser(ctx context.Context, email, password string
 		return fmt.Errorf("error hashing password: %v", err)
 	}
 
-	newUser := models.User{
+	var newUser = models.User{
 		ID:        primitive.NewObjectID().Hex(),
 		Email:     email,
 		Password:  string(hashPassword),
 		CreatedAt: time.Now(),
-		Role:      "standard",
+		Role:      models.RoleStandard,
 	}
 
 	err = u.repo.Create(ctx, &newUser)
@@ -57,38 +59,63 @@ func (u *userServiceImpl) CreateUser(ctx context.Context, email, password string
 	return nil
 }
 
-func (u *userServiceImpl) GetUser(ctx context.Context, emailOrID string) (*models.User, error) {
+// TODO: ПЕРЕПИСАТЬ!!!!
+func (u *userServiceImpl) GetUser(ctx context.Context, emailOrID string) (*dto.User, error) {
 	if strings.Contains(emailOrID, "@") && strings.Contains(emailOrID, ".") {
-		user, err := u.repo.FindByEmail(ctx, emailOrID)
+		userRepo, err := u.repo.FindByEmail(ctx, emailOrID)
 		if err != nil {
 			return nil, fmt.Errorf("error getting user: %v", err)
 		}
 
-		return user, nil
+		var user = dto.User{
+			ID:        userRepo.ID,
+			Email:     userRepo.Email,
+			Password:  userRepo.Password,
+			CreatedAt: userRepo.CreatedAt,
+			Role:      userRepo.Role,
+		}
+
+		return &user, nil
 	} else {
-		user, err := u.repo.FindByID(ctx, emailOrID)
+		userRepo, err := u.repo.FindByID(ctx, emailOrID)
 		if err != nil {
 			return nil, fmt.Errorf("error getting user: %v", err)
 		}
 
-		return user, nil
+		var user = dto.User{
+			ID:        userRepo.ID,
+			Email:     userRepo.Email,
+			Password:  userRepo.Password,
+			CreatedAt: userRepo.CreatedAt,
+			Role:      userRepo.Role,
+		}
+
+		return &user, nil
 	}
 }
 
-func (u *userServiceImpl) Authenticate(ctx context.Context, email, password string) (*models.User, error) {
-	user, err := u.repo.FindByEmail(ctx, email)
+func (u *userServiceImpl) Authenticate(ctx context.Context, email, password string) (*dto.User, error) {
+	userRepo, err := u.repo.FindByEmail(ctx, email)
 	if err != nil {
 		return nil, fmt.Errorf("error getting user: %v", err)
 	}
 
-	if user == nil {
-		return nil, fmt.Errorf("user not found")
+	if userRepo == nil {
+		return nil, dto.NotFoundErr
 	}
 
-	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
+	err = bcrypt.CompareHashAndPassword([]byte(userRepo.Password), []byte(password))
 	if err != nil {
-		return nil, fmt.Errorf("password incorrect")
+		return nil, dto.InvalidPasswordErr
 	}
 
-	return user, nil
+	var user = dto.User{
+		ID:        userRepo.ID,
+		Email:     userRepo.Email,
+		Password:  userRepo.Password,
+		CreatedAt: userRepo.CreatedAt,
+		Role:      userRepo.Role,
+	}
+
+	return &user, nil
 }

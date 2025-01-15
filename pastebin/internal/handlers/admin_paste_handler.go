@@ -3,6 +3,8 @@ package handlers
 import (
 	"net/http"
 
+	"github.com/JuDyas/GolangPractice/pastebin_new/models"
+
 	"github.com/JuDyas/GolangPractice/pastebin_new/internal/services"
 	"github.com/gin-gonic/gin"
 )
@@ -21,6 +23,12 @@ func NewAdminHandler(service services.AdminPasteService) AdminPasteHandler {
 }
 
 func (h *adminHandlerImpl) DeletePaste(c *gin.Context) {
+	role, exist := c.Get("role")
+	if !exist || role != models.RoleAdmin {
+		c.JSON(http.StatusUnauthorized, gin.H{"message": "unauthorized"})
+		return
+	}
+
 	id := c.Param("id")
 	if err := h.service.SoftDeletePaste(c.Request.Context(), id); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -31,6 +39,12 @@ func (h *adminHandlerImpl) DeletePaste(c *gin.Context) {
 }
 
 func (h *adminHandlerImpl) ListPastes(c *gin.Context) {
+	role, exist := c.Get("role")
+	if !exist || role != models.RoleAdmin {
+		c.JSON(http.StatusUnauthorized, gin.H{"message": "unauthorized"})
+		return
+	}
+
 	var input struct {
 		Content   string                 `json:"content,omitempty"`
 		CreatedAt map[string]interface{} `json:"created_at,omitempty"`

@@ -13,14 +13,3 @@ type Paste struct {
 	Authorized   bool      `json:"authorized,omitempty" bson:"authorized"`
 	Deleted      bool      `bson:"deleted" json:"deleted"`
 }
-
-type PasteDTl struct {
-	ID      string `json:"id" bson:"_id"`
-	Content string `json:"content" bson:"content"`
-}
-
-type InputPaste struct {
-	Password string `json:"password"`
-	Email    string
-	IP       string
-}
