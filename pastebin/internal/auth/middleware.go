@@ -6,19 +6,15 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/JuDyas/GolangPractice/pastebin_new/internal/services"
-
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 )
 
-func AuthoriseMiddleware(jwtSecret []byte, requiredRole ...string) gin.HandlerFunc {
+func AuthoriseMiddleware(jwtSecret []byte) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authHeader := c.Request.Header.Get("Authorization")
 		if authHeader == "" || !strings.HasPrefix(authHeader, "Bearer ") {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "missing authorization header"})
-			c.Abort()
-			return
+			c.Next()
 		}
 
 		tokenString := strings.TrimPrefix(authHeader, "Bearer ")
@@ -38,7 +34,7 @@ func AuthoriseMiddleware(jwtSecret []byte, requiredRole ...string) gin.HandlerFu
 		}
 
 		claims, ok := token.Claims.(jwt.MapClaims)
-		if !ok || !token.Valid {
+		if !ok {
 			log.Printf("get token claims error")
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid or expired token"})
 		}
@@ -49,53 +45,15 @@ func AuthoriseMiddleware(jwtSecret []byte, requiredRole ...string) gin.HandlerFu
 			c.Abort()
 			return
 		}
-
-		c.Set("email", email)
-		if len(requiredRole) > 0 {
-			role, ok := claims["role"].(string)
-			if !ok || !contains(requiredRole, role) {
-				c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
-				c.Abort()
-				return
-			}
-			c.Set("role", role)
-		}
-
-		c.Next()
-	}
-}
-
-func contains(roles []string, role string) bool {
-	for _, r := range roles {
-		if r == role {
-			return true
-		}
-	}
-	return false
-}
-
-func PasteMiddleware(ps services.PasteService, jwtSecret []byte) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		pasteID := c.Param("id")
-		paste, err := ps.GetPasteByID(c.Request.Context(), pasteID)
-		if err != nil {
-			c.JSON(http.StatusNotFound, gin.H{"error": "paste not found"})
+		role, ok := claims["roles"].(float64)
+		if !ok {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid token payload"})
 			c.Abort()
 			return
 		}
 
-		c.Set("paste", paste)
-		if paste.AllowedEmail == "" && paste.Authorized == false {
-			c.Next()
-			return
-		}
-
-		authorise := AuthoriseMiddleware(jwtSecret)
-		authorise(c)
-		if c.IsAborted() {
-			return
-		}
-
+		c.Set("email", email)
+		c.Set("role", role)
 		c.Next()
 	}
 }
