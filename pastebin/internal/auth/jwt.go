@@ -3,13 +3,13 @@ package auth
 import (
 	"log"
 
-	"github.com/JuDyas/GolangPractice/pastebin_new/models"
+	"github.com/JuDyas/GolangPractice/pastebin_new/dto"
 
 	"github.com/golang-jwt/jwt/v5"
 )
 
 // GenerateJWT - generate jwt token and signe it with secret
-func GenerateJWT(user *models.User, jwtSecret []byte) (string, error) {
+func GenerateJWT(user *dto.User, jwtSecret []byte) (string, error) {
 	claims := jwt.MapClaims{
 		"sub":  user.ID,
 		"mail": user.Email,

@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/JuDyas/GolangPractice/pastebin_new/dto"
+
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -22,17 +24,26 @@ type PasteRepository interface {
 }
 
 type pasteRepositoryImpl struct {
-	collection *mongo.Collection
+	client *mongo.Client
+	dbName string
 }
 
-func NewPasteRepository(collection *mongo.Collection) PasteRepository {
-	return pasteRepositoryImpl{collection: collection}
+func NewPasteRepository(client *mongo.Client, dbName string) PasteRepository {
+	return pasteRepositoryImpl{
+		client: client,
+		dbName: dbName,
+	}
+}
+
+func (r pasteRepositoryImpl) getCollection(collectionName string) *mongo.Collection {
+	return r.client.Database(r.dbName).Collection(collectionName)
 }
 
 func (r pasteRepositoryImpl) CreatePaste(ctx context.Context, paste *models.Paste) error {
 	paste.ID = primitive.NewObjectID().Hex()
 	paste.CreatedAt = time.Now()
-	_, err := r.collection.InsertOne(ctx, paste)
+	collection := r.getCollection(dto.DBPastes)
+	_, err := collection.InsertOne(ctx, paste)
 	if err != nil {
 		return fmt.Errorf("save paste error: %w", err)
 	}
@@ -41,7 +52,8 @@ func (r pasteRepositoryImpl) CreatePaste(ctx context.Context, paste *models.Past
 
 func (r pasteRepositoryImpl) GetPasteByID(ctx context.Context, id string) (*models.Paste, error) {
 	var paste models.Paste
-	err := r.collection.FindOne(ctx, bson.M{"_id": id}).Decode(&paste)
+	collection := r.getCollection(dto.DBPastes)
+	err := collection.FindOne(ctx, bson.M{"_id": id}).Decode(&paste)
 	if err != nil {
 		return nil, fmt.Errorf("get paste error: %w", err)
 	}
@@ -54,7 +66,8 @@ func (r pasteRepositoryImpl) SoftDelete(ctx context.Context, id string) error {
 		update = bson.M{"$set": bson.M{"deleted": true}}
 		filter = bson.M{"_id": id}
 	)
-	_, err := r.collection.UpdateOne(ctx, filter, update)
+	collection := r.getCollection(dto.DBPastes)
+	_, err := collection.UpdateOne(ctx, filter, update)
 	if err != nil {
 		return fmt.Errorf("soft delete paste error: %w", err)
 	}
@@ -74,7 +87,8 @@ func (r pasteRepositoryImpl) FindAllPastes(ctx context.Context, filters map[stri
 		SetSkip(int64(skip)).
 		SetLimit(int64(limit))
 
-	cursor, err := r.collection.Find(ctx, filter, opts)
+	collection := r.getCollection(dto.DBPastes)
+	cursor, err := collection.Find(ctx, filter, opts)
 	if err != nil {
 		return nil, fmt.Errorf("find pastes error: %w", err)
 	}

@@ -41,12 +41,12 @@ func (app *App) Init(uri string) {
 
 	//Data-Base
 	app.DBClient = db.ConnectDatabase(uri)
-	mdb := app.DBClient.Database("pastebin")
+	dbName := os.Getenv("DB_NAME")
 	//Auth
-	userRepository := repositories.NewUserRepository(mdb.Collection("users"))
+	userRepository := repositories.NewUserRepository(app.DBClient, dbName)
 	app.UserService = services.NewUserService(userRepository)
 	//Pastes
-	pasteRepository := repositories.NewPasteRepository(mdb.Collection("pastes"))
+	pasteRepository := repositories.NewPasteRepository(app.DBClient, dbName)
 	app.PasteService = services.NewPasteService(pasteRepository)
 	pasteHandler := handlers.NewPasteHandler(app.PasteService)
 	//Admin

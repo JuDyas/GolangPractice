@@ -14,6 +14,7 @@ var (
 	NotFoundErr         = errors.New("user not found")
 	InvalidPasswordErr  = errors.New("password is incorrect")
 	FailedLoginErr      = errors.New("failed to login")
+	DBUsers             = "users"
 )
 
 type User struct {

@@ -5,6 +5,8 @@ import (
 	"errors"
 	"log"
 
+	"github.com/JuDyas/GolangPractice/pastebin_new/dto"
+
 	"github.com/JuDyas/GolangPractice/pastebin_new/models"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
@@ -17,15 +19,24 @@ type UserRepository interface {
 }
 
 type userRepositoryImpl struct {
-	db *mongo.Collection
+	client *mongo.Client
+	dbName string
 }
 
-func NewUserRepository(db *mongo.Collection) UserRepository {
-	return &userRepositoryImpl{db: db}
+func NewUserRepository(client *mongo.Client, dbName string) UserRepository {
+	return &userRepositoryImpl{
+		client: client,
+		dbName: dbName,
+	}
+}
+
+func (u *userRepositoryImpl) getCollection(collectionName string) *mongo.Collection {
+	return u.client.Database(u.dbName).Collection(collectionName)
 }
 
 func (u *userRepositoryImpl) Create(ctx context.Context, user *models.User) error {
-	_, err := u.db.InsertOne(ctx, user)
+	collection := u.getCollection(dto.DBUsers)
+	_, err := collection.InsertOne(ctx, user)
 	if err != nil {
 		//TODO: add zap logger
 		log.Println(err)
@@ -37,7 +48,8 @@ func (u *userRepositoryImpl) Create(ctx context.Context, user *models.User) erro
 
 func (u *userRepositoryImpl) FindByID(ctx context.Context, userId string) (*models.User, error) {
 	var user models.User
-	err := u.db.FindOne(ctx, bson.M{"_id": userId}).Decode(&user)
+	collection := u.getCollection(dto.DBUsers)
+	err := collection.FindOne(ctx, bson.M{"_id": userId}).Decode(&user)
 	if errors.Is(err, mongo.ErrNoDocuments) {
 		return nil, nil
 	}
@@ -47,7 +59,8 @@ func (u *userRepositoryImpl) FindByID(ctx context.Context, userId string) (*mode
 
 func (u *userRepositoryImpl) FindByEmail(ctx context.Context, email string) (*models.User, error) {
 	var user models.User
-	err := u.db.FindOne(ctx, bson.M{"email": email}).Decode(&user)
+	collection := u.getCollection(dto.DBUsers)
+	err := collection.FindOne(ctx, bson.M{"email": email}).Decode(&user)
 	if errors.Is(err, mongo.ErrNoDocuments) {
 		return nil, nil
 	}

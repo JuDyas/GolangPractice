@@ -17,6 +17,7 @@ func SetupRoutes(r *gin.Engine, userService services.UserService, pasteService s
 	v1.POST("/pastes", pasteHandler.CreatePaste)
 	v1.GET("/:id", pasteHandler.GetPaste)
 	//Admin group
-	v1.DELETE("/pastes/:id", adminHandler.DeletePaste)
-	v1.POST("/pastes", adminHandler.ListPastes)
+	admin := v1.Group("/admin")
+	admin.DELETE("/pastes/:id", adminHandler.DeletePaste)
+	admin.POST("/pastes", adminHandler.ListPastes)
 }

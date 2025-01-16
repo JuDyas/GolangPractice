@@ -2,6 +2,10 @@ package dto
 
 import "time"
 
+var (
+	DBPastes = "pastes"
+)
+
 type CreatePaste struct {
 	Content      string `json:"content" bson:"content"`
 	TTL          int64  `json:"ttl,omitempty"`
