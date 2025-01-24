@@ -1,0 +1,56 @@
+services:
+  postgres:
+    image: postgres:17
+    container_name: postgres
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: image_scraper
+    volumes:
+      - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5432:5432"
+    networks:
+      - backend
+
+  masterserver:
+    build:
+      context: ./masterserver
+      dockerfile: Dockerfile
+    container_name: masterserver
+    depends_on:
+      - postgres
+    environment:
+      DATABASE_URL: postgres://user:password@postgres:5432/image_scraper
+    ports:
+      - "8080:8080"
+    networks:
+      - backend
+      - frontend
+
+
+  parserserver:
+    build:
+      context: ./parserserver
+      dockerfile: Dockerfile
+    container_name: parserserver
+    depends_on:
+      - masterserver
+    ports:
+      - "8081:8081"
+    networks:
+      - backend
+
+#  client:
+#    build:
+#      context: ./client
+#      dockerfile: Dockerfile
+#    container_name: client
+#    ports:
+#      - "3000:3000"
+#    networks:
+#      - frontend
+
+  networks:
+    backend:
+    frontend:
