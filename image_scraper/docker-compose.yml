@@ -7,7 +7,8 @@ services:
       POSTGRES_PASSWORD: password
       POSTGRES_DB: image_scraper
     volumes:
-      - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - postgres_data:/var/lib/postgresql/data
+      - ./masterserver/db/init.sql:/docker-entrypoint-initdb.d/init.sql
     ports:
       - "5432:5432"
     networks:
@@ -24,6 +25,8 @@ services:
       DATABASE_URL: postgres://user:password@postgres:5432/image_scraper
     ports:
       - "8080:8080"
+    volumes:
+      - ./uploads:/app/uploads
     networks:
       - backend
       - frontend
@@ -31,9 +34,9 @@ services:
 
   parserserver:
     build:
-      context: ./parserserver
+      context: ./parseserver
       dockerfile: Dockerfile
-    container_name: parserserver
+    container_name: parseserver
     depends_on:
       - masterserver
     ports:
@@ -41,16 +44,16 @@ services:
     networks:
       - backend
 
-#  client:
-#    build:
-#      context: ./client
-#      dockerfile: Dockerfile
-#    container_name: client
-#    ports:
-#      - "3000:3000"
-#    networks:
-#      - frontend
+  client:
+    build:
+      context: ./client
+      dockerfile: nginx/Dockerfile
+    container_name: client
+    ports:
+      - "3000:3000"
+    networks:
+      - frontend
 
-  networks:
-    backend:
-    frontend:
+networks:
+  backend:
+  frontend:
