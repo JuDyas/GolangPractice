@@ -2,9 +2,69 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Title</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebSocket Image Viewer</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 20px;
+        }
+        #image-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        img {
+            max-width: 300px;
+            max-height: 300px;
+            margin: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.2);
+        }
+    </style>
 </head>
 <body>
+<div id="image-container"></div>
 
+<script>
+    const ws = new WebSocket("ws://localhost:8080/ws");
+    const imageContainer = document.getElementById("image-container");
+    const imageQueue = [];
+    let processing = false;
+
+    ws.onmessage = function(event) {
+        imageQueue.push(event.data);
+        processQueue();
+    };
+
+    function processQueue() {
+        if (processing || imageQueue.length === 0) return;
+        processing = true;
+
+        const imageUrl = imageQueue.shift();
+        const img = document.createElement("img");
+        img.src = imageUrl;
+        img.onload = () => {
+            imageContainer.appendChild(img);
+            processing = false;
+            processQueue();
+        };
+        img.onerror = () => {
+            console.error("Failed to load image:", imageUrl);
+            processing = false;
+            processQueue();
+        };
+    }
+
+    ws.onopen = function() {
+        console.log("Connected to WebSocket server");
+    };
+
+    ws.onerror = function(error) {
+        console.error("WebSocket error:", error);
+    };
+</script>
 </body>
 </html>

@@ -1,59 +1,78 @@
 services:
+  parser:
+    build:
+      context: ./parser
+      dockerfile: Dockerfile
+    image: parser:${PARSER_IMAGE_TAG}
+    depends_on:
+      - master
+      - redis
+    container_name: parser-server
+    environment:
+      PARSER_SERVER_PORT: ${PARSER_SERVER_PORT}
+      CONFIG_PATH: ${CONFIG_PATH}
+    ports:
+      - "${PARSER_SERVER_PORT}:${PARSER_SERVER_PORT}"
+    networks:
+      - backend
+      - redis
+
+  redis:
+    image: redis:latest
+    container_name: redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    networks:
+      - redis
+
+  master:
+    build:
+      context: ./master
+      dockerfile: Dockerfile
+    image: master:${MASTER_IMAGE_TAG}
+    depends_on:
+      - postgres
+    container_name: master-server
+    environment:
+      MASTER_SERVER_PORT: ${MASTER_SERVER_PORT}
+    ports:
+      - "${MASTER_SERVER_PORT}:${MASTER_SERVER_PORT}"
+    networks:
+      - backend
+      - frontend
+      - postgres
+
   postgres:
     image: postgres:17
     container_name: postgres
     environment:
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: image_scraper
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_URL: ${POSTGRES_URL}
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./masterserver/db/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./master/internal/db/init.sql:/docker-entrypoint-initdb.d/init.sql
     ports:
-      - "5432:5432"
+      - "${POSTGRES_PORT}:${POSTGRES_PORT}"
     networks:
-      - backend
-
-  masterserver:
-    build:
-      context: ./masterserver
-      dockerfile: Dockerfile
-    container_name: masterserver
-    depends_on:
       - postgres
-    environment:
-      DATABASE_URL: postgres://user:password@postgres:5432/image_scraper
-    ports:
-      - "8080:8080"
-    volumes:
-      - ./uploads:/app/uploads
-    networks:
-      - backend
-      - frontend
-
-
-  parserserver:
-    build:
-      context: ./parseserver
-      dockerfile: Dockerfile
-    container_name: parseserver
-    depends_on:
-      - masterserver
-    ports:
-      - "8081:8081"
-    networks:
-      - backend
 
   client:
     build:
       context: ./client
       dockerfile: nginx/Dockerfile
     container_name: client
-    ports:
-      - "3000:3000"
     networks:
       - frontend
 
 networks:
   backend:
   frontend:
+  redis:
+  postgres:
+
+volumes:
+  postgres_data:
+    driver: local
