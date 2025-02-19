@@ -1,5 +1,9 @@
 package models
 
+import "time"
+
+const TTL = 1 * time.Minute
+
 type UserAgent struct {
 	Device         string `json:"device"`
 	UserAgent      string `json:"useragent"`

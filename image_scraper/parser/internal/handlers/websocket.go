@@ -1,38 +1,35 @@
-package services
+package handlers
 
 import (
 	"encoding/json"
 	"fmt"
 	"log"
 
+	"github.com/JuDyas/GolangPractice/pastebin_new/image_scraper/parser/internal/services"
+
+	"github.com/JuDyas/GolangPractice/pastebin_new/image_scraper/parser/internal/models"
+
 	"github.com/gorilla/websocket"
 )
 
-type CommandType string
-
-const (
-	CmdStart    CommandType = "start"
-	CmdStop     CommandType = "stop"
-	CmsPause    CommandType = "pause"
-	CmdContinue CommandType = "continue"
-)
-
-type CommandMessage struct {
-	Command CommandType `json:"command"`
-	URL     string      `json:"url,omitempty"`
-}
-
 type WebSocketClientImpl struct {
-	url    string
-	conn   *websocket.Conn
-	parser Parser
+	url          string
+	conn         *websocket.Conn
+	parser       services.Parser
+	controlChan  chan<- models.CommandType
+	imageUrlChan <-chan string
 }
 
-func NewWebSocketClient(url string, parser Parser) *WebSocketClientImpl {
-	return &WebSocketClientImpl{
-		url:    url,
-		parser: parser,
+func NewWebSocketClient(url string, parser services.Parser, controlChan chan<- models.CommandType, imageUrlChan <-chan string) *WebSocketClientImpl {
+	ws := &WebSocketClientImpl{
+		url:          url,
+		parser:       parser,
+		controlChan:  controlChan,
+		imageUrlChan: imageUrlChan,
 	}
+
+	go ws.writeMessage()
+	return ws
 }
 
 func (w *WebSocketClientImpl) Connect() error {
@@ -63,7 +60,7 @@ func (w *WebSocketClientImpl) Listen() {
 			break
 		}
 
-		var cmdMsg CommandMessage
+		var cmdMsg models.CommandMessage
 		err = json.Unmarshal(message, &cmdMsg)
 		if err != nil {
 			log.Println("Error unmarshalling message:", err)
@@ -73,21 +70,25 @@ func (w *WebSocketClientImpl) Listen() {
 		log.Println("Received command:", cmdMsg.Command)
 
 		switch cmdMsg.Command {
-		case CmdStart:
+		case models.CmdStart:
 			if cmdMsg.URL == "" {
 				log.Println("Start command received without URL")
 				continue
 			}
 			log.Println("Starting parser for URL:", cmdMsg.URL)
 			w.parser.Start(cmdMsg.URL)
-		case CmdStop:
-			w.parser.Stop()
-		case CmsPause:
-			w.parser.Pause()
-		case CmdContinue:
-			w.parser.Continue()
 		default:
-			log.Println("Unknown command:", cmdMsg.Command)
+			w.controlChan <- cmdMsg.Command
+		}
+	}
+}
+
+func (w *WebSocketClientImpl) writeMessage() {
+	for imgSrc := range w.imageUrlChan {
+		err := w.conn.WriteMessage(websocket.TextMessage, []byte(imgSrc))
+		if err != nil {
+			fmt.Println("write message to parser:", err)
+			return
 		}
 	}
 }

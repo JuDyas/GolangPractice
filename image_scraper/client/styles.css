@@ -1,0 +1,39 @@
+body {
+    text-align: center;
+    margin: 1.5em;
+    color: white;
+    background: #171717;
+}
+
+input {
+    padding: 0.6em;
+    width: 15em;
+}
+
+button {
+    padding: 0.6em 1em;
+    margin: 0.4em;
+    cursor: pointer;
+}
+
+img {
+    width: 100%;
+    height: auto;
+    border-radius: 0.5em;
+}
+
+#ws-status {
+    font-weight: bold;
+    color: red;
+}
+
+.connected {
+    color: green;
+}
+
+#image-container {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1em;
+    margin-top: 1em;
+}

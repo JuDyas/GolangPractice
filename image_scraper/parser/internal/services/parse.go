@@ -9,7 +9,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/redis/go-redis/v9"
+	"github.com/JuDyas/GolangPractice/pastebin_new/image_scraper/parser/internal/repositories"
+
+	"github.com/JuDyas/GolangPractice/pastebin_new/image_scraper/parser/internal/models"
 
 	"github.com/JuDyas/GolangPractice/pastebin_new/image_scraper/parser/config"
 	"github.com/gocolly/colly"
@@ -22,35 +24,30 @@ const (
 
 type Parser interface {
 	Start(url string)
-	Stop()
-	Pause()
-	Continue()
 }
 
 type WebParser struct {
-	url       string
-	paused    bool
-	mutex     sync.Mutex
-	stopChan  chan struct{}
-	pauseChan chan struct{}
-	redis     *redis.Client
-	domain    string
+	url  string
+	repo repositories.LinksRepository
+	//TODO: Сделать проверку на паузу, чтобы нельзя было запустить парсинг прежде, чем остановится прошлый.
+	//paused      bool
+	mutex        sync.Mutex
+	controlChan  <-chan models.CommandType
+	imageUrlChan chan<- string
+	domain       string
 }
 
-func NewWebParser(redisAddr string) *WebParser {
-	rdb := redis.NewClient(&redis.Options{
-		Addr: redisAddr,
-	})
+func NewWebParser(repo repositories.LinksRepository, controlChan <-chan models.CommandType, imageUrlChan chan<- string) *WebParser {
 	return &WebParser{
-		stopChan:  make(chan struct{}),
-		pauseChan: make(chan struct{}),
-		redis:     rdb,
+		controlChan:  controlChan,
+		imageUrlChan: imageUrlChan,
+		repo:         repo,
 	}
 }
 
+// Start - start parser process
 func (wp *WebParser) Start(url string) {
 	wp.url = url
-	wp.paused = false
 	wp.mutex.Lock()
 	defer wp.mutex.Unlock()
 
@@ -67,44 +64,59 @@ func (wp *WebParser) parse(webURL string) {
 	wp.parseProcess(webURL)
 }
 
+// parseProcess - check exist link in redis and start parsing page with parameters
 func (wp *WebParser) parseProcess(url string) {
 	ctx := context.Background()
-	ttl, err := wp.redis.TTL(ctx, url).Result()
-	if err != nil {
-		log.Println("check TTL:", err)
+	exist := wp.repo.CheckExists(ctx, url)
+	if exist {
 		return
+	} else {
+		wp.repo.SaveLink(ctx, url)
 	}
 
-	if ttl > 0 {
-		log.Println("ulr exist, still alive for:", ttl)
-		return
-	}
+	select {
+	case cmd := <-wp.controlChan:
+		if cmd == models.CmdPause {
+			fmt.Println(models.CmdPause)
+			for {
+				if cmd := <-wp.controlChan; cmd == models.CmdResume {
+					fmt.Println(models.CmdResume)
+					break
+				} else if cmd == models.CmdStop {
+					fmt.Println(models.CmdStop)
+					return
+				}
+			}
+		}
+	default:
+		err := wp.parsePage(
+			url,
+			linksSelector,
+			imgSelector,
+			func(e *colly.HTMLElement) {
+				link := e.Request.AbsoluteURL(e.Attr("href"))
+				fmt.Println("link found: ", link)
+				wp.parseProcess(link)
+			},
+			func(e *colly.HTMLElement) {
+				imgSrc := e.Request.AbsoluteURL(e.Attr("src"))
+				fmt.Println("imgSrc found: ", imgSrc)
+				exist = wp.repo.CheckExists(ctx, imgSrc)
+				if exist {
+					fmt.Println("img already exists")
+				} else {
+					wp.repo.SaveLink(ctx, imgSrc)
+					wp.imageUrlChan <- imgSrc
+				}
+			})
 
-	err = wp.redis.Set(ctx, url, "visited", 2*time.Minute).Err()
-	if err != nil {
-		log.Println("set: ", err)
-		return
-	}
-
-	err = wp.parsePage(
-		url,
-		linksSelector,
-		imgSelector,
-		func(e *colly.HTMLElement) {
-			link := e.Request.AbsoluteURL(e.Attr("href"))
-			fmt.Println("link found: ", link)
-			wp.parseProcess(link)
-		},
-		func(e *colly.HTMLElement) {
-			imgSrc := e.Request.AbsoluteURL(e.Attr("src"))
-			fmt.Println("imgSrc found: ", imgSrc)
-		})
-
-	if err != nil {
-		fmt.Println(err)
+		if err != nil {
+			fmt.Println(err)
+		}
 	}
 }
 
+// parsePage - Parse page with selectors and process functions
 func (wp *WebParser) parsePage(url string, selectorLinks string, selectorImg string, processFuncLinks, processFuncImg func(e *colly.HTMLElement)) error {
 	c := colly.NewCollector(colly.AllowedDomains(wp.domain))
 	rand.Seed(time.Now().UnixNano())
@@ -135,6 +147,7 @@ func (wp *WebParser) parsePage(url string, selectorLinks string, selectorImg str
 
 	c.OnHTML(selectorImg, processFuncImg)
 	c.OnHTML(selectorLinks, processFuncLinks)
+
 	err = c.Visit(url)
 	if err != nil {
 		return fmt.Errorf("visit: %v", err)
@@ -142,16 +155,4 @@ func (wp *WebParser) parsePage(url string, selectorLinks string, selectorImg str
 
 	c.Wait()
 	return nil
-}
-
-func (wp *WebParser) Stop() {
-
-}
-
-func (wp *WebParser) Pause() {
-
-}
-
-func (wp *WebParser) Continue() {
-
 }

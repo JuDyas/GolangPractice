@@ -16,6 +16,8 @@ services:
     networks:
       - backend
       - redis
+    volumes:
+      - uploads_data:/app/uploads
 
   redis:
     image: redis:latest
@@ -42,6 +44,8 @@ services:
       - backend
       - frontend
       - postgres
+    volumes:
+      - uploads_data:/app/uploads
 
   postgres:
     image: postgres:17
@@ -64,8 +68,12 @@ services:
       context: ./client
       dockerfile: nginx/Dockerfile
     container_name: client
+    ports:
+      - "${CLIENT_PORT}:${CLIENT_PORT}"
     networks:
       - frontend
+    volumes:
+      - uploads_data:/app/uploads
 
 networks:
   backend:
@@ -75,4 +83,6 @@ networks:
 
 volumes:
   postgres_data:
+    driver: local
+  uploads_data:
     driver: local

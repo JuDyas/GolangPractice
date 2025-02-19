@@ -1,17 +1,20 @@
 package models
 
 import (
-	"os"
+	"errors"
 	"time"
 )
 
-var UploadsDir = os.Getenv("UPLOAD_DIR")
+const ResizeFactor = 0.8
+
+var MaxSizeErr = errors.New("size of image is so large")
 
 type Image struct {
 	ID         int       `json:"id"`
 	Filename   string    `json:"filename"`
 	Format     string    `json:"format"`
-	Size       int       `json:"size"`
+	Width      int       `json:"width"`
+	Height     int       `json:"height"`
 	UploadDate time.Time `json:"upload_date"`
 	Filepath   string    `json:"filepath"`
 }

@@ -5,6 +5,11 @@ import (
 	"log"
 	"os"
 
+	"github.com/JuDyas/GolangPractice/pastebin_new/image_scraper/parser/internal/repositories"
+
+	"github.com/JuDyas/GolangPractice/pastebin_new/image_scraper/parser/internal/handlers"
+	"github.com/JuDyas/GolangPractice/pastebin_new/image_scraper/parser/internal/models"
+
 	"github.com/JuDyas/GolangPractice/pastebin_new/image_scraper/parser/internal/services"
 )
 
@@ -15,8 +20,11 @@ func main() {
 		redisAddr = "redis:6379"
 	}
 
-	parser := services.NewWebParser(redisAddr)
-	wsClient := services.NewWebSocketClient("ws://master:8080/ws/parser", parser)
+	controlChan := make(chan models.CommandType)
+	imageUrlChan := make(chan string)
+	repo := repositories.NewLinksRepository(redisAddr)
+	parser := services.NewWebParser(repo, controlChan, imageUrlChan)
+	wsClient := handlers.NewWebSocketClient("ws://master:8080/ws/parser", parser, controlChan, imageUrlChan)
 
 	err := wsClient.Connect()
 	if err != nil {

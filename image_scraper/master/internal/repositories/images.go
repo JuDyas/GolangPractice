@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 
 	"github.com/JuDyas/GolangPractice/pastebin_new/image_scraper/master/internal/models"
@@ -23,10 +24,10 @@ func NewImageRepository(database *sql.DB) *ImageRepositoryImpl {
 }
 
 func (repo *ImageRepositoryImpl) SaveImage(image models.Image) error {
-	query := `INSERT INTO images (filename, format, size, filepath)
-			VALUES ($1, $2, $3, $4)
+	query := `INSERT INTO images (filename, format, width, height, filepath)
+			VALUES ($1, $2, $3, $4, $5)
 			RETURNING id`
-	err := repo.db.QueryRow(query, image.Filename, image.Format, image.Size, image.Filepath).Scan(&image.ID)
+	err := repo.db.QueryRow(query, image.Filename, image.Format, image.Width, image.Height, image.Filepath).Scan(&image.ID)
 	if err != nil {
 		return fmt.Errorf("save image data in postgres: %w", err)
 	}
@@ -34,11 +35,19 @@ func (repo *ImageRepositoryImpl) SaveImage(image models.Image) error {
 	return nil
 }
 
-func (repo *ImageRepositoryImpl) CheckExist(filename string) (bool, error) {
-	var count int
-	err := repo.db.QueryRow("SELECT COUNT(*) FROM images WHERE filename = $1", filename).Scan(&count)
+func (repo *ImageRepositoryImpl) CheckExist(filename string) (models.Image, bool, error) {
+	var image models.Image
+	err := repo.db.QueryRow(`
+		SELECT id, filename, format, width, height, filepath
+		FROM images 
+		WHERE filename = $1`, filename).Scan(&image.ID, &image.Filename, &image.Format, &image.Width, &image.Height, &image.Filepath)
+
 	if err != nil {
-		return false, fmt.Errorf("Error checking existence of image " + filename + ": " + err.Error())
+		if errors.Is(err, sql.ErrNoRows) {
+			return image, false, nil
+		}
+		return image, false, fmt.Errorf("checking existence of image %s: %v", filename, err)
 	}
-	return count > 0, nil
+
+	return image, true, nil
 }
