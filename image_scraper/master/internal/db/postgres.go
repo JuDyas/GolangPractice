@@ -2,34 +2,52 @@ package db
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
-	"log"
 	"os"
 
+	"github.com/golang-migrate/migrate/v4"
+	_ "github.com/golang-migrate/migrate/v4/database/postgres"
+	_ "github.com/golang-migrate/migrate/v4/source/file"
 	_ "github.com/lib/pq"
 )
 
-func InitPostgres() *sql.DB {
+const migratePath = "file:///migrations"
+
+func InitPostgres() (*sql.DB, error) {
 	var (
-		db    *sql.DB
+		db *sql.DB
+		//TODO ПЕРАДАВАТЬ
 		dbURL = os.Getenv("POSTGRES_URL")
 		err   error
 	)
 
-	if dbURL == "" {
-		log.Println("POSTGRES_URL environment variable not set")
-		dbURL = "postgres://user:password@postgres:5432/image_scraper?sslmode=disable"
-	}
-
 	db, err = sql.Open("postgres", dbURL)
 	if err != nil {
-		log.Fatal("connect to database:", err)
+		return nil, fmt.Errorf("connect to database: %w", err)
 	}
 
 	if err = db.Ping(); err != nil {
-		log.Fatal("ping database:", err)
+		return nil, fmt.Errorf("ping database: %w", err)
+	}
+
+	if err := runMigrations(dbURL, migratePath); err != nil {
+		return nil, fmt.Errorf("run migrations: %w", err)
 	}
 
 	fmt.Println("Successfully connected to PostgreSQL database")
-	return db
+	return db, nil
+}
+
+func runMigrations(url string, migratePath string) error {
+	m, err := migrate.New(migratePath, url)
+	if err != nil {
+		return err
+	}
+
+	if err := m.Up(); err != nil && !errors.Is(err, migrate.ErrNoChange) {
+		return err
+	}
+
+	return nil
 }

@@ -5,9 +5,8 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/JuDyas/GolangPractice/pastebin_new/image_scraper/parser/internal/services"
-
-	"github.com/JuDyas/GolangPractice/pastebin_new/image_scraper/parser/internal/models"
+	"github.com/JuDyas/GolangPractice/image_scraper/parser/internal/models"
+	"github.com/JuDyas/GolangPractice/image_scraper/parser/internal/services"
 
 	"github.com/gorilla/websocket"
 )
@@ -56,14 +55,14 @@ func (w *WebSocketClientImpl) Listen() {
 	for {
 		_, message, err := w.conn.ReadMessage()
 		if err != nil {
-			log.Println("Error reading message:", err)
+			log.Println("error reading message:", err)
 			break
 		}
 
 		var cmdMsg models.CommandMessage
 		err = json.Unmarshal(message, &cmdMsg)
 		if err != nil {
-			log.Println("Error unmarshalling message:", err)
+			log.Println("error unmarshalling message:", err)
 			continue
 		}
 
@@ -97,7 +96,7 @@ func (w *WebSocketClientImpl) Close() {
 	if w.conn != nil {
 		err := w.conn.Close()
 		if err != nil {
-			log.Println("Error closing websocket connection")
+			log.Println("error closing websocket connection")
 		}
 	}
 }

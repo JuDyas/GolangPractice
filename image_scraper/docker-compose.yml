@@ -4,15 +4,15 @@ services:
       context: ./parser
       dockerfile: Dockerfile
     image: parser:${PARSER_IMAGE_TAG}
+#    scale: 2
     depends_on:
       - master
       - redis
-    container_name: parser-server
     environment:
       PARSER_SERVER_PORT: ${PARSER_SERVER_PORT}
       CONFIG_PATH: ${CONFIG_PATH}
     ports:
-      - "${PARSER_SERVER_PORT}:${PARSER_SERVER_PORT}"
+      - "${PARSER_SERVER_PORT}"
     networks:
       - backend
       - redis
@@ -21,7 +21,7 @@ services:
 
   redis:
     image: redis:latest
-    container_name: redis
+    container_name: redis-parser
     restart: unless-stopped
     ports:
       - "6379:6379"
@@ -38,6 +38,8 @@ services:
     container_name: master-server
     environment:
       MASTER_SERVER_PORT: ${MASTER_SERVER_PORT}
+      POSTGRES_URL: ${POSTGRES_URL}
+      UPLOADS_DIR: ${UPLOADS_DIR}
     ports:
       - "${MASTER_SERVER_PORT}:${MASTER_SERVER_PORT}"
     networks:
@@ -49,7 +51,7 @@ services:
 
   postgres:
     image: postgres:17
-    container_name: postgres
+    container_name: postgres-master
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -57,7 +59,6 @@ services:
       POSTGRES_URL: ${POSTGRES_URL}
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./master/internal/db/init.sql:/docker-entrypoint-initdb.d/init.sql
     ports:
       - "${POSTGRES_PORT}:${POSTGRES_PORT}"
     networks:

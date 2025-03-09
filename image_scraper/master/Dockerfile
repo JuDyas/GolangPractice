@@ -13,8 +13,9 @@ FROM debian:bookworm
 WORKDIR /app
 
 COPY --from=builder /app/master .
+COPY --from=builder /app/internal/db/migrations /migrations
 
-#ENV PARSER_SERVER_PORT=${PARSER_SERVER_PORT}
+
 EXPOSE ${MASTER_SERVER_PORT}
 
 CMD ["./master"]

@@ -5,6 +5,8 @@ import (
 	"time"
 )
 
+const DBUsers = "users"
+
 var (
 	UserExistErr        = errors.New("user already exists")
 	FailedCreateUserErr = errors.New("failed to create user")
@@ -14,7 +16,6 @@ var (
 	NotFoundErr         = errors.New("user not found")
 	InvalidPasswordErr  = errors.New("password is incorrect")
 	FailedLoginErr      = errors.New("failed to login")
-	DBUsers             = "users"
 )
 
 type User struct {

@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/JuDyas/GolangPractice/pastebin_new/image_scraper/parser/internal/models"
+	"github.com/JuDyas/GolangPractice/image_scraper/parser/internal/models"
 
 	"github.com/redis/go-redis/v9"
 )

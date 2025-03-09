@@ -3,9 +3,10 @@ package config
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/JuDyas/GolangPractice/pastebin_new/image_scraper/parser/internal/models"
 	"os"
 	"path/filepath"
+
+	"github.com/JuDyas/GolangPractice/image_scraper/parser/internal/models"
 )
 
 func LoadHeaders() ([]models.UserAgent, error) {

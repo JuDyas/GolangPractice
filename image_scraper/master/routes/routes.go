@@ -5,7 +5,7 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-func SetupRoutes(e *echo.Echo, ws handlers.WebSocket) {
+func SetupRoutes(e *echo.Echo, ws *handlers.WebSocketImpl) {
 	e.GET("/ws/parser", ws.ParserHandler())
 	e.GET("/ws/client", ws.ClientHandler())
 }

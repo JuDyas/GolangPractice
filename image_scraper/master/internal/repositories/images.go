@@ -6,6 +6,8 @@ import (
 	"fmt"
 
 	"github.com/JuDyas/GolangPractice/pastebin_new/image_scraper/master/internal/models"
+
+	_ "github.com/lib/pq"
 )
 
 type ImageRepository interface {
@@ -35,6 +37,7 @@ func (repo *ImageRepositoryImpl) SaveImage(image models.Image) error {
 	return nil
 }
 
+// TODO убрать bool
 func (repo *ImageRepositoryImpl) CheckExist(filename string) (models.Image, bool, error) {
 	var image models.Image
 	err := repo.db.QueryRow(`

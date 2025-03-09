@@ -5,12 +5,10 @@ import (
 	"log"
 	"os"
 
-	"github.com/JuDyas/GolangPractice/pastebin_new/image_scraper/parser/internal/repositories"
-
-	"github.com/JuDyas/GolangPractice/pastebin_new/image_scraper/parser/internal/handlers"
-	"github.com/JuDyas/GolangPractice/pastebin_new/image_scraper/parser/internal/models"
-
-	"github.com/JuDyas/GolangPractice/pastebin_new/image_scraper/parser/internal/services"
+	"github.com/JuDyas/GolangPractice/image_scraper/parser/internal/handlers"
+	"github.com/JuDyas/GolangPractice/image_scraper/parser/internal/models"
+	"github.com/JuDyas/GolangPractice/image_scraper/parser/internal/repositories"
+	"github.com/JuDyas/GolangPractice/image_scraper/parser/internal/services"
 )
 
 func main() {
@@ -20,7 +18,7 @@ func main() {
 		redisAddr = "redis:6379"
 	}
 
-	controlChan := make(chan models.CommandType)
+	controlChan := make(chan models.CommandType, 10)
 	imageUrlChan := make(chan string)
 	repo := repositories.NewLinksRepository(redisAddr)
 	parser := services.NewWebParser(repo, controlChan, imageUrlChan)

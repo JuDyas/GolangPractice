@@ -1,4 +1,4 @@
-module github.com/JuDyas/GolangPractice/pastebin_new/image_scraper/parser
+module github.com/JuDyas/GolangPractice/image_scraper/parser
 
 go 1.23.1
 
